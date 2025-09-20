@@ -24,36 +24,36 @@ let selectedPiece = null;
 let isMovingObject = false;
 let objectToPlace = null; // The object we intend to place from the menu
 let ghostObject = null; // The semi-transparent preview
+const intialScale = 0.2;
+const smoothingFactor = 0.1;
 
-// --- Model Loading & UI Creation (Corrected) --- //
+// --- Model Loading & UI Creation --- //
 const loader = new GLTFLoader();
 loader.load('low_poly_furnitures_full_bundle.glb', glb => {
     const furnitureMenu = document.getElementById('furniture-menu');
-    const model = glb.scene;
+    
+    // Use traverse to find every individual mesh, just like your original code
+    glb.scene.traverse(child => {
+        // We only care about meshes that have a unique name
+        if (child.isMesh && child.name && !furniturePieces.has(child.name)) {
+            // Store the original mesh for cloning
+            furniturePieces.set(child.name, child);
 
-    // --- FIX: Use the correct path to the individual furniture pieces ---
-    // The path is scene > children[0] > children[0] > children
-    const individualPieces = model.children[0].children[0].children;
-
-    individualPieces.forEach(piece => {
-        if (piece.isObject3D && piece.name) {
-            // Store the original piece for cloning
-            furniturePieces.set(piece.name, piece);
-
-            // Create a UI button for this piece
+            // Create a UI button for this mesh
             const button = document.createElement('button');
-            button.textContent = piece.name;
+            button.textContent = child.name;
             button.addEventListener('click', () => {
                 document.querySelectorAll('#furniture-menu button').forEach(b => b.classList.remove('selected'));
-                objectToPlace = furniturePieces.get(piece.name);
+                objectToPlace = furniturePieces.get(child.name);
                 button.classList.add('selected');
 
                 if (ghostObject) scene.remove(ghostObject);
                 ghostObject = objectToPlace.clone();
-                ghostObject.traverse(child => {
-                    if (child.isMesh) {
-                        child.material = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
-                    }
+                ghostObject.scale.set(intialScale, intialScale, intialScale);
+                ghostObject.material = new THREE.MeshBasicMaterial({
+                    color: 0x00ff00,
+                    transparent: true,
+                    opacity: 0.5
                 });
                 ghostObject.visible = false;
                 scene.add(ghostObject);
@@ -63,6 +63,15 @@ loader.load('low_poly_furnitures_full_bundle.glb', glb => {
     });
 });
 
+// TODO: function to store object 
+// method to take in item 
+// hashmap?
+// store id object pair
+// selecting calls a function to place item
+// copy item
+// copied item is selected obj
+// tag: new item
+
 // --- Interaction Logic --- //
 let lastTapTime = 0;
 const doubleTapThreshold = 300;
@@ -70,19 +79,12 @@ const doubleTapThreshold = 300;
 renderer.domElement.addEventListener('pointerdown', (event) => {
     event.preventDefault();
 
-    // -- Priority 1: Placing a NEW object --
     if (objectToPlace && ghostObject && ghostObject.visible) {
-        // Clone the object and place it
         const newObject = objectToPlace.clone();
+        newObject.scale.set(initialScale, initialScale, initialScale);
         newObject.position.copy(ghostObject.position);
         scene.add(newObject);
-
-        // Make the new object interactable
-        newObject.traverse(child => {
-            if (child.isMesh) interactableObjects.push(child);
-        });
-
-        // Reset placing mode
+        interactableObjects.push(newObject);
         objectToPlace = null;
         scene.remove(ghostObject);
         ghostObject = null;
@@ -90,13 +92,9 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
         return;
     }
 
-    // -- Priority 2: Placing an EXISTING moved object --
     if (isMovingObject) {
-        // (This logic is the same as before)
         if (selectedPiece && originalMaterials.has(selectedPiece)) {
-            selectedPiece.traverse(child => {
-                if (child.isMesh) child.material = originalMaterials.get(selectedPiece).get(child);
-            });
+            selectedPiece.material = originalMaterials.get(selectedPiece);
             originalMaterials.delete(selectedPiece);
         }
         isMovingObject = false;
@@ -104,32 +102,26 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
         return;
     }
 
-    // -- Priority 3: Check for double-tap to START moving an object --
     const currentTime = Date.now();
     if (currentTime - lastTapTime < doubleTapThreshold) {
         const pointer = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(pointer, camera);
-        const intersects = raycaster.intersectObjects(interactableObjects, true);
+        const intersects = raycaster.intersectObjects(interactableObjects, false);
 
         if (intersects.length > 0) {
-            selectedPiece = intersects[0].object.parent;
+            selectedPiece = intersects[0].object; 
             isMovingObject = true;
 
-            const box = new THREE.Box3().setFromObject(selectedPiece);
-            selectedPiece.userData.floorOffset = box.min.y;
+            selectedPiece.geometry.computeBoundingBox();
+            const box = selectedPiece.geometry.boundingBox;
+            selectedPiece.userData.floorOffset = box.min.y * selectedPiece.scale.y;
 
-            const childMaterials = new Map();
-            selectedPiece.traverse(child => {
-                if (child.isMesh) {
-                    childMaterials.set(child, child.material);
-                    const highlightMaterial = child.material.clone();
-                    highlightMaterial.emissive = new THREE.Color(0x00ff00);
-                    highlightMaterial.emissiveIntensity = 0.5;
-                    child.material = highlightMaterial;
-                }
-            });
-            originalMaterials.set(selectedPiece, childMaterials);
+            originalMaterials.set(selectedPiece, selectedPiece.material);
+            const highlightMaterial = selectedPiece.material.clone();
+            highlightMaterial.emissive = new THREE.Color(0x00ff00);
+            highlightMaterial.emissiveIntensity = 0.5;
+            selectedPiece.material = highlightMaterial;
         }
     }
     lastTapTime = currentTime;
@@ -157,22 +149,36 @@ function animate(timestamp, frame) {
                 const referenceSpace = renderer.xr.getReferenceSpace();
                 const hit = hitTestResults[0];
                 const pose = hit.getPose(referenceSpace);
+                const hitPosition = pose.transform.position;
 
-                // If moving an object, update its position
+                // Move the selected piece with smoothing
                 if (isMovingObject && selectedPiece) {
-                    selectedPiece.position.set(pose.transform.position.x, pose.transform.position.y - selectedPiece.userData.floorOffset, pose.transform.position.z);
+                    const targetPosition = new THREE.Vector3(
+                        hitPosition.x,
+                        hitPosition.y - selectedPiece.userData.floorOffset,
+                        hitPosition.z
+                    );
+                    // Use LERP for smooth movement instead of teleporting
+                    selectedPiece.position.lerp(targetPosition, smoothingFactor);
                 }
 
-                // If placing a new object, update the ghost's position
+                // Move the ghost preview with smoothing
                 if (objectToPlace && ghostObject) {
                     ghostObject.visible = true;
-                    const box = new THREE.Box3().setFromObject(ghostObject);
-                    const floorOffset = box.min.y;
-                    ghostObject.position.set(pose.transform.position.x, pose.transform.position.y - floorOffset, pose.transform.position.z);
+                    ghostObject.geometry.computeBoundingBox();
+                    const box = ghostObject.geometry.boundingBox;
+                    const floorOffset = box.min.y * ghostObject.scale.y;
+                    
+                    const targetPosition = new THREE.Vector3(
+                        hitPosition.x,
+                        hitPosition.y - floorOffset,
+                        hitPosition.z
+                    );
+                    // Use LERP for smooth movement instead of teleporting
+                    ghostObject.position.lerp(targetPosition, smoothingFactor);
                 }
 
             } else {
-                // If hit test finds no surface, hide the ghost
                 if (ghostObject) ghostObject.visible = false;
             }
         }
