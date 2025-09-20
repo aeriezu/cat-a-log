@@ -1,39 +1,29 @@
-body {
-    margin: 0;
-    font-family: sans-serif;
-    /* Prevents scrollbars */
-    overflow: hidden; 
-}
-
-canvas {
-    display: block;
-    /* This is the most important property for disabling browser gestures */
-    touch-action: none; 
-
-    /* Disables the menu on long-press in iOS Safari */
-    -webkit-touch-callout: none;
-
-    /* Prevents users from selecting text, which can also trigger menus */
-    -webkit-user-select: none;
-    user-select: none;
-
-    /* Removes the gray highlight box on tap in mobile browsers */
-    -webkit-tap-highlight-color: transparent;
-}
-
-#done-button {
+/* Add these new styles to your existing CSS file */
+#furniture-menu {
     position: absolute;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    padding: 12px 25px;
-    font-size: 18px;
-    font-weight: bold;
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
+    z-index: 10;
+}
+
+#furniture-menu button {
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #333;
     color: white;
-    background-color: #007aff;
-    border: none;
-    border-radius: 30px;
+    border: 1px solid #555;
+    border-radius: 15px;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    display: none; /* Hidden by default */
+}
+
+#furniture-menu button.selected {
+    /* Style for the button when in "placing mode" */
+    background-color: #007aff;
+    border-color: #007aff;
 }

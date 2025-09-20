@@ -16,90 +16,118 @@ const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 3);
 light.position.set(0.5, 1, 0.25);
 scene.add(light);
 
-// --- Model Loading --- //
-const loader = new GLTFLoader();
+// --- State Variables --- //
 const interactableObjects = [];
-// This map will store original materials to restore them after deselection
 const originalMaterials = new Map();
+const furniturePieces = new Map(); // Stores the original furniture pieces for cloning
+let selectedPiece = null;
+let isMovingObject = false;
+let objectToPlace = null; // The object we intend to place from the menu
+let ghostObject = null; // The semi-transparent preview
 
+// --- Model Loading & UI Creation --- //
+const loader = new GLTFLoader();
 loader.load('low_poly_furnitures_full_bundle.glb', glb => {
-    const model = glb.scene;
-    scene.add(model);
-    model.traverse(child => {
-        if(child.isMesh){
-            interactableObjects.push(child);
+    const furnitureMenu = document.getElementById('furniture-menu');
+    
+    // Process each piece of furniture in the bundle
+    glb.scene.children.forEach(piece => {
+        if (piece.isObject3D && piece.name) {
+            // Store the original piece for cloning
+            furniturePieces.set(piece.name, piece);
+
+            // Create a button for each piece
+            const button = document.createElement('button');
+            button.textContent = piece.name;
+            button.addEventListener('click', () => {
+                // Deselect any currently active button
+                document.querySelectorAll('#furniture-menu button').forEach(b => b.classList.remove('selected'));
+                
+                // Set this piece as the one to place
+                objectToPlace = furniturePieces.get(piece.name);
+                button.classList.add('selected');
+
+                // Create and show the ghost preview
+                if (ghostObject) scene.remove(ghostObject);
+                ghostObject = objectToPlace.clone();
+                ghostObject.traverse(child => {
+                    if (child.isMesh) {
+                        child.material = new THREE.MeshBasicMaterial({
+                            color: 0x00ff00,
+                            transparent: true,
+                            opacity: 0.5
+                        });
+                    }
+                });
+                ghostObject.visible = false; // It will be made visible when the hit-test finds a surface
+                scene.add(ghostObject);
+            });
+            furnitureMenu.appendChild(button);
         }
     });
 });
 
-// --- UI Elements --- //
-const doneButton = document.createElement('button');
-doneButton.id = 'done-button';
-doneButton.innerText = 'Place Furniture ✔️';
-document.body.appendChild(doneButton);
 
-// --- AR Hit-Test & State Variables --- //
-let hitTestSource = null;
-let hitTestSourceRequested = false;
-let selectedPiece = null;
-let isMovingObject = false;
-
-// --- Interaction Logic Variables --- //
+// --- Interaction Logic --- //
 let lastTapTime = 0;
-const doubleTapThreshold = 300; // milliseconds
-
-// --- Event Listeners for Double-Tap --- //
+const doubleTapThreshold = 300;
 
 renderer.domElement.addEventListener('pointerdown', (event) => {
     event.preventDefault();
 
-    // If we are already moving an object, a single tap will place it.
+    // -- Priority 1: Placing a NEW object --
+    if (objectToPlace && ghostObject && ghostObject.visible) {
+        // Clone the object and place it
+        const newObject = objectToPlace.clone();
+        newObject.position.copy(ghostObject.position);
+        scene.add(newObject);
+
+        // Make the new object interactable
+        newObject.traverse(child => {
+            if (child.isMesh) interactableObjects.push(child);
+        });
+
+        // Reset placing mode
+        objectToPlace = null;
+        scene.remove(ghostObject);
+        ghostObject = null;
+        document.querySelectorAll('#furniture-menu button').forEach(b => b.classList.remove('selected'));
+        return;
+    }
+
+    // -- Priority 2: Placing an EXISTING moved object --
     if (isMovingObject) {
-        // Restore original materials before placing
+        // (This logic is the same as before)
         if (selectedPiece && originalMaterials.has(selectedPiece)) {
             selectedPiece.traverse(child => {
-                if (child.isMesh) {
-                    child.material = originalMaterials.get(selectedPiece).get(child);
-                }
+                if (child.isMesh) child.material = originalMaterials.get(selectedPiece).get(child);
             });
             originalMaterials.delete(selectedPiece);
         }
         isMovingObject = false;
         selectedPiece = null;
-        doneButton.style.display = 'none';
         return;
     }
 
-    // Check for double-tap
+    // -- Priority 3: Check for double-tap to START moving an object --
     const currentTime = Date.now();
-    const timeSinceLastTap = currentTime - lastTapTime;
-
-    if (timeSinceLastTap < doubleTapThreshold) {
-        // --- DOUBLE-TAP CONFIRMED ---
-        const pointer = new THREE.Vector2(
-            (event.clientX / window.innerWidth) * 2 - 1,
-            -(event.clientY / window.innerHeight) * 2 + 1
-        );
+    if (currentTime - lastTapTime < doubleTapThreshold) {
+        const pointer = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(pointer, camera);
         const intersects = raycaster.intersectObjects(interactableObjects, true);
 
         if (intersects.length > 0) {
-            selectedPiece = intersects[0].object.parent; // Select the whole furniture group
+            selectedPiece = intersects[0].object.parent;
             isMovingObject = true;
-            doneButton.style.display = 'block';
 
-            // --- FIX: Calculate floor offset for the whole object at selection time ---
             const box = new THREE.Box3().setFromObject(selectedPiece);
             selectedPiece.userData.floorOffset = box.min.y;
 
-            // --- FEATURE: Visual Feedback on Selection (Glow Effect) ---
             const childMaterials = new Map();
             selectedPiece.traverse(child => {
                 if (child.isMesh) {
-                    // Store the original material
                     childMaterials.set(child, child.material);
-                    // Clone it and make it glow green
                     const highlightMaterial = child.material.clone();
                     highlightMaterial.emissive = new THREE.Color(0x00ff00);
                     highlightMaterial.emissiveIntensity = 0.5;
@@ -109,58 +137,48 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
             originalMaterials.set(selectedPiece, childMaterials);
         }
     }
-
     lastTapTime = currentTime;
 });
 
-
-// Done button also places the furniture
-doneButton.addEventListener('click', () => {
-    if (isMovingObject) {
-        // Restore materials when done button is clicked
-        if (selectedPiece && originalMaterials.has(selectedPiece)) {
-             selectedPiece.traverse(child => {
-                if (child.isMesh) {
-                    child.material = originalMaterials.get(selectedPiece).get(child);
-                }
-            });
-            originalMaterials.delete(selectedPiece);
-        }
-        isMovingObject = false;
-        selectedPiece = null;
-        doneButton.style.display = 'none';
-    }
-});
-
-
 // --- Animation Loop --- //
+let hitTestSource = null;
+let hitTestSourceRequested = false;
+
 function animate(timestamp, frame) {
     if (frame) {
         if (!hitTestSourceRequested) {
             const session = renderer.xr.getSession();
-            session.requestReferenceSpace('viewer').then((referenceSpace) => {
-                session.requestHitTestSource({ space: referenceSpace }).then((source) => {
+            session.requestReferenceSpace('viewer').then(refSpace => {
+                session.requestHitTestSource({ space: refSpace }).then(source => {
                     hitTestSource = source;
                 });
             });
             hitTestSourceRequested = true;
         }
 
-        if (hitTestSource && isMovingObject && selectedPiece) {
+        if (hitTestSource) {
             const hitTestResults = frame.getHitTestResults(hitTestSource);
             if (hitTestResults.length > 0) {
                 const referenceSpace = renderer.xr.getReferenceSpace();
                 const hit = hitTestResults[0];
                 const pose = hit.getPose(referenceSpace);
-                
-                // --- FIX: Use the new, more accurate floor offset ---
-                // The hit test gives the floor position. We subtract the distance from the
-                // object's origin to its bottom edge, placing it perfectly on the floor.
-                selectedPiece.position.set(
-                    pose.transform.position.x,
-                    pose.transform.position.y - selectedPiece.userData.floorOffset,
-                    pose.transform.position.z
-                );
+
+                // If moving an object, update its position
+                if (isMovingObject && selectedPiece) {
+                    selectedPiece.position.set(pose.transform.position.x, pose.transform.position.y - selectedPiece.userData.floorOffset, pose.transform.position.z);
+                }
+
+                // If placing a new object, update the ghost's position
+                if (objectToPlace && ghostObject) {
+                    ghostObject.visible = true;
+                    const box = new THREE.Box3().setFromObject(ghostObject);
+                    const floorOffset = box.min.y;
+                    ghostObject.position.set(pose.transform.position.x, pose.transform.position.y - floorOffset, pose.transform.position.z);
+                }
+
+            } else {
+                // If hit test finds no surface, hide the ghost
+                if (ghostObject) ghostObject.visible = false;
             }
         }
     }
