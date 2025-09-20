@@ -32,13 +32,33 @@ loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
         child.castShadow = true;
         child.recieveShadow = true;
 
-        if(!child.name) child.name == THREE.MathUtils.generateUUID();
+        if(!child.name) child.name = THREE.MathUtils.generateUUID();
 
         funiturePieces.push(child);
     })
+    console.log(funiturePieces);
+
+    funiturePieces.forEach((mesh)=>{
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    context.font = '30px Arial';
+    context.fillStyle = 'white';
+    context.fillText(mesh.name, 0, 30);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+    const sprite = new THREE.Sprite(spriteMaterial);
+
+    sprite.scale.set(1, 0.5, 1);
+    sprite.position.set(mesh.position.x, mesh.position.y + 1, mesh.position.z);
+
+    scene.add(sprite);
 });
-console.log(funiturePieces);
+
+});
+
 function animate(){
     controls.update();
     renderer.render(scene,camera);
 }
+
