@@ -5,6 +5,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 //raycaster setup (object selection)
 const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const interactableObjects = [];
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
