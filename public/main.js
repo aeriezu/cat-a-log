@@ -17,16 +17,24 @@ document.body.appendChild( renderer.domElement );
 const controls = new OrbitControls( camera, renderer.domElement );
 const loader = new GLTFLoader();
 
+const funiturePieces = [] // store invidual meshes
+
 loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
-    scene.add(glb.scene);
-    glb.scene.traverse((child)=>{
+    const model = glb.scene;
+    scene.add(model);
+    model.traverse((child)=>{
         if(child.isMesh){
             console.log(child);
         }
         child.castShadow = true;
         child.recieveShadow = true;
+
+        if(!child.name) child.name == THREE.MathUtils.generateUUID();
+
+        funiturePieces.push(child);
     })
 });
+console.log(funiturePieces);
 function animate(){
     controls.update();
     renderer.render(scene,camera);
