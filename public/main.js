@@ -33,6 +33,7 @@ document.body.appendChild(doneButton);
 doneButton.addEventListener('click', () => {
     selectedPiece = null;
     isSelected = false;
+    doneButton.style.pointerEvents = 'auto';
     doneButton.style.display = 'none';
     controls.enabled = true;
 });
@@ -68,7 +69,7 @@ loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
             console.log(child);
         }
         child.castShadow = true;
-        child.recieveShadow = true;
+        child.receiveShadow = true;
 
         if(!child.name) child.name = THREE.MathUtils.generateUUID();
 
@@ -98,10 +99,9 @@ loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
 
 
 // --- EVENT LISTENERS --- //
-window.addEventListener('pointermove', onPointerMove);
-window.addEventListener('pointerup', () => {
-    //selectedPiece = null;
-});
+renderer.domElement.addEventListener('pointerdown', onPointerDown);
+renderer.domElement.addEventListener('pointermove', onPointerMove);
+renderer.domElement.addEventListener('pointerup', onPointerUp);
 
 renderer.domElement.addEventListener('touchstart', (event) => {
     if(isSelected) return;
@@ -188,7 +188,7 @@ function onPointerDown(event) {
 function onPointerMove(event) {
     // 1. Only run if a piece is selected
     if (!selectedPiece) return;
-                                           
+
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
     pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
 
