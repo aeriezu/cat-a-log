@@ -31,6 +31,7 @@ document.body.appendChild(doneButton);
 
 doneButton.addEventListener('click', () => {
     selectedPiece = null;
+    isSelected = false;
     doneButton.style.display = 'none';
 });
 
@@ -101,7 +102,9 @@ window.addEventListener('pointerup', () => {
 });
 
 
+const isSelected = false;
 renderer.domElement.addEventListener('touchstart', (event) => {
+    if(isSelected) return;
     if (event.touches.length !== 1) return;
     
     const touch = event.touches[0];
@@ -120,6 +123,7 @@ renderer.domElement.addEventListener('touchstart', (event) => {
         setTimeout(() => {
             if (Date.now() - touchStartTime >= holdThreshold) {
                 selectedPiece = target;
+                isSelected =true;
                 doneButton.style.display = 'block';
                 controls.enabled = false;
                 console.log('Selected:', selectedPiece.name);
