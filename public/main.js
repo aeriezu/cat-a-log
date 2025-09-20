@@ -44,7 +44,7 @@ const furniturePieces = new Map();
 let selectedPiece = null;
 let isMovingObject = false;
 let objectToPlace = null;
-const INITIAL_SCALE = 0.2;
+const INITIAL_SCALE = 1;
 
 // --- Model Loading & UI Creation --- //
 const loader = new GLTFLoader();
@@ -99,7 +99,7 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
         newObject.scale.set(INITIAL_SCALE, INITIAL_SCALE, INITIAL_SCALE);
         
         // Place the object 2 meters in front of the camera
-        const position = new THREE.Vector3(0, -0.5, -2); // Adjust Y to appear lower
+        const position = new THREE.Vector3(0, -0.5, -8); // Adjust Y to appear lower
         position.applyMatrix4(camera.matrixWorld); // Position relative to camera
         newObject.position.copy(position);
 

@@ -2,60 +2,51 @@ body {
     margin: 0;
     font-family: sans-serif;
     overflow: hidden; 
-    /* Add a background to see the box clearly */
-    background-color: #333;
 }
 
-#video-background {
+canvas {
+    /* The canvas is fullscreen but mostly transparent */
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover; /* This makes the video cover the whole screen */
-    z-index: -1; /* Place it behind everything else */
 }
 
-#ar-container {
-    /* Center the box */
+/* The main overlay container covers the whole screen */
+#overlay-content {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    
-    /* Set the size of the box */
-    width: 90vw;
-    height: 70vh;
-    
-    /* Style the box */
-    border: 2px solid white;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    overflow: hidden; /* Important: The canvas will be inside this */
-}
-
-/* Canvas now lives inside the container */
-canvas {
-    display: block;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    touch-action: none; 
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
+    /* This allows taps to pass through the transparent parts to the canvas */
+    pointer-events: none; 
 }
 
+/* These four divs create the opaque borders, leaving a transparent hole in the middle */
+.overlay-border {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 5;
+}
+.overlay-border.top { top: 0; left: 0; width: 100%; height: 15vh; }
+.overlay-border.bottom { bottom: 0; left: 0; width: 100%; height: 15vh; }
+.overlay-border.left { top: 15vh; left: 0; width: 5vw; height: 70vh; }
+.overlay-border.right { top: 15vh; right: 0; width: 5vw; height: 70vh; }
+
+
+/* The menu is positioned relative to the overlay */
 #furniture-menu {
     position: absolute;
-    bottom: 20px;
+    bottom: 5vh; /* Position inside the bottom border */
     left: 50%;
     transform: translateX(-50%);
     display: flex;
     gap: 10px;
-    padding: 10px;
-    background-color: rgba(0, 0, 0, 0.5);
-    border-radius: 20px;
     z-index: 10;
+    /* We need to re-enable pointer events for the menu itself */
+    pointer-events: auto; 
 }
 
 #furniture-menu button {
