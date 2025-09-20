@@ -29,52 +29,39 @@ let ghostObject = null; // The semi-transparent preview
 const loader = new GLTFLoader();
 loader.load('low_poly_furnitures_full_bundle.glb', glb => {
     const furnitureMenu = document.getElementById('furniture-menu');
-    
-    // The main parent object that holds all the furniture
-    const furnitureBundle = glb.scene; 
-    
-    // We don't add the whole bundle to the scene directly.
-    // Instead, we find the individual pieces within it.
-    
-    // FIX: The individual pieces are children of the first object in the bundle.
-    const individualPieces = furnitureBundle.children[0].children;
+    const model = glb.scene;
+
+    // --- FIX: Use the correct path to the individual furniture pieces ---
+    // The path is scene > children[0] > children[0] > children
+    const individualPieces = model.children[0].children[0].children;
 
     individualPieces.forEach(piece => {
         if (piece.isObject3D && piece.name) {
             // Store the original piece for cloning
             furniturePieces.set(piece.name, piece);
 
-            // Create a button for each piece
+            // Create a UI button for this piece
             const button = document.createElement('button');
             button.textContent = piece.name;
             button.addEventListener('click', () => {
-                // Deselect any currently active button
                 document.querySelectorAll('#furniture-menu button').forEach(b => b.classList.remove('selected'));
-                
-                // Set this piece as the one to place
                 objectToPlace = furniturePieces.get(piece.name);
                 button.classList.add('selected');
 
-                // Create and show the ghost preview
                 if (ghostObject) scene.remove(ghostObject);
                 ghostObject = objectToPlace.clone();
                 ghostObject.traverse(child => {
                     if (child.isMesh) {
-                        child.material = new THREE.MeshBasicMaterial({
-                            color: 0x00ff00,
-                            transparent: true,
-                            opacity: 0.5
-                        });
+                        child.material = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
                     }
                 });
-                ghostObject.visible = false; 
+                ghostObject.visible = false;
                 scene.add(ghostObject);
             });
             furnitureMenu.appendChild(button);
         }
     });
 });
-
 
 // --- Interaction Logic --- //
 let lastTapTime = 0;
