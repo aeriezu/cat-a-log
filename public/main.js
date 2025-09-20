@@ -2,11 +2,35 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-
 //raycaster setup (object selection)
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const interactableObjects = [];
+let selectedPiece = null;
+let touchStartTime = 0;
+const holdThreshold = 800;
+
+const GRID_SIZE = 1; // 1 unit per cell
+const grid = new Map(); // store occupied cells
+
+function posToCell(pos) {
+    const x = Math.round(pos.x / GRID_SIZE);
+    const z = Math.round(pos.z / GRID_SIZE);
+    return `${x},${z}`;
+}
+
+const doneButton = document.createElement('button');
+doneButton.innerText = '✔️';
+doneButton.style.position = 'absolute';
+doneButton.style.top = '10px';
+doneButton.style.right = '10px';
+doneButton.style.display = 'none';
+document.body.appendChild(doneButton);
+
+doneButton.addEventListener('click', () => {
+    selectedPiece = null;
+    doneButton.style.display = 'none';
+});
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
@@ -26,7 +50,6 @@ const ground = new THREE.Mesh(
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
-
 
 const controls = new OrbitControls( camera, renderer.domElement );
 const loader = new GLTFLoader();
@@ -49,47 +72,125 @@ loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
 
         funiturePieces.push(child);
     })
+    
     console.log(funiturePieces);
 
     funiturePieces.forEach((mesh)=>{
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    context.font = '30px Arial';
-    context.fillStyle = 'white';
-    context.fillText(mesh.name, 0, 30);
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        context.font = '30px Arial';
+        context.fillStyle = 'white';
+        context.fillText(mesh.name, 0, 30);
 
-    const texture = new THREE.CanvasTexture(canvas);
-    const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-    const sprite = new THREE.Sprite(spriteMaterial);
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(spriteMaterial);
 
-    sprite.scale.set(1, 0.5, 1);
-    sprite.position.set(mesh.position.x, mesh.position.y + 1, mesh.position.z);
+        sprite.scale.set(1, 0.5, 1);
+        sprite.position.set(mesh.position.x, mesh.position.y + 1, mesh.position.z);
 
-    scene.add(sprite);
+        scene.add(sprite);
+    });
+
 });
 
+renderer.domElement.addEventListener('touchstart', (event) => {
+    if (event.touches.length !== 1) return;
+    
+    const touch = event.touches[0];
+    pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(pointer, camera);
+    const intersects = raycaster.intersectObjects(interactableObjects, true);
+
+    if (intersects.length > 0) {
+        touchStartTime = Date.now();
+        const target = intersects[0].object.parent; // top-level object
+        selectedPiece = null; // not yet selected
+
+        // check after holdThreshold
+        setTimeout(() => {
+            if (Date.now() - touchStartTime >= holdThreshold) {
+                selectedPiece = target;
+                doneButton.style.display = 'block';
+                controls.enabled = false;
+                console.log('Selected:', selectedPiece.name);
+            }
+        }, holdThreshold);
+    }
+});
+
+renderer.domElement.addEventListener('touchmove', (event) => {
+    if (!selectedPiece) return;
+    event.preventDefault(); // prevent scrolling
+
+    const touch = event.touches[0];
+    pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(pointer, camera);
+
+    const plane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
+    const intersectionPoint = new THREE.Vector3();
+    if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
+        selectedPiece.position.set(
+            intersectionPoint.x,
+            selectedPiece.position.y,
+            intersectionPoint.z
+        );
+    }
+});
+
+renderer.domElement.addEventListener('touchend', () => {
+    touchStartTime = 0;
 });
 
 function onPointerDown(event) {
-    // Calculate pointer position in normalized device coordinates
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
     pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
 
     raycaster.setFromCamera(pointer, camera);
-    const intersects = raycaster.intersectObjects(interactableObjects);
+    const intersects = raycaster.intersectObjects(interactableObjects, true);
 
     if (intersects.length > 0) {
-        const clickedObject = intersects[0].object;
-        console.log(`Tapped on: ${clickedObject.name}`);
-        
-        // Update the UI element
-        document.getElementById('info').innerText = `Selected: ${clickedObject.name}`;
+        selectedPiece = intersects[0].object.parent; // pick parent mesh
+        console.log(`Selected: ${selectedPiece.name}`);
+
+        document.getElementById('info').innerText = `Selected: ${selectedPiece.name}`;
+    } else {
+        selectedPiece = null;
     }
 }
 
-window.addEventListener('pointerdown', onPointerDown);
+function onPointerMove(event) {
+    if (!selectedPiece) return;
+
+    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(pointer, camera);
+
+    // Plane at y = 0 (ground)
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const intersectionPoint = new THREE.Vector3();
+
+    if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
+        selectedPiece.position.set(
+            intersectionPoint.x,
+            selectedPiece.position.y, // keep original height
+            intersectionPoint.z
+        );
+    }
+}
+
+window.addEventListener('pointermove', onPointerMove);
+
+window.addEventListener('pointerup', () => {
+    selectedPiece = null;
+});
+
 function animate(){
     controls.update();
     renderer.render(scene,camera);
 }
-
