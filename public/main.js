@@ -4,198 +4,168 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // --- SCENE, CAMERA, RENDERER --- //
 const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(4, 5, 7); // Adjusted for a better initial view
 
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-camera.position.z = 5;
-
-const renderer = new THREE.WebGLRenderer({antialias: true});
-renderer.setSize( window.innerWidth, window.innerHeight );
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
-renderer.setAnimationLoop(animate);
-document.body.appendChild( renderer.domElement );
+document.body.appendChild(renderer.domElement);
 
-// --- OBJECT SELECT --- //
-const interactableObjects = [];
+// --- STATE MANAGEMENT --- //
+const interactableObjects = []; // Stores top-level furniture groups
 let selectedPiece = null;
-let touchStartTime = 0;
-const holdThreshold = 800;
-let isSelected = false;
+let isSelected = false;   // Is an object in the "selected" state?
+let isDragging = false;   // Is the user actively dragging the selected object?
+let holdTimeout = null;
+const holdThreshold = 500; // A shorter hold time feels more responsive
 
-// --- OBJECT DONE BUTTON --- //
+// --- UI ELEMENTS --- //
 const doneButton = document.createElement('button');
 doneButton.innerText = '✔️';
-doneButton.style.position = 'absolute';
-doneButton.style.top = '10px';
-doneButton.style.right = '10px';
-doneButton.style.display = 'none';
+doneButton.style.cssText = `
+    position: absolute; top: 20px; right: 20px; display: none;
+    font-size: 24px; padding: 10px 15px; border-radius: 50%;
+    border: none; cursor: pointer; background-color: #4CAF50; color: white;
+`;
 document.body.appendChild(doneButton);
 
 doneButton.addEventListener('click', () => {
-    selectedPiece = null;
-    isSelected = false;
-    doneButton.style.display = 'none';
-    controls.enabled = true;
+    if (selectedPiece) {
+        selectedPiece = null;
+        isSelected = false;
+        isDragging = false;
+        doneButton.style.display = 'none';
+        controls.enabled = true;
+    }
 });
 
-// --- GROUND --- //
+// --- LIGHTING AND GROUND --- //
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+directionalLight.position.set(5, 10, 7.5);
+directionalLight.castShadow = true;
+scene.add(directionalLight);
+
 const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(30,30),
-    new THREE.MeshStandardMaterial({color: 0xcccccc})
+    new THREE.PlaneGeometry(30, 30),
+    new THREE.MeshStandardMaterial({ color: 0xcccccc })
 );
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// --- CONTROLS --- //
-const controls = new OrbitControls( camera, renderer.domElement );
-
-// --- RAYCASTING AND POINTER -- //
+// --- CONTROLS, RAYCASTER --- //
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1, 0);
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
+const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
 // --- GLTF LOADER --- //
 const loader = new GLTFLoader();
-
-const funiturePieces = [] // store invidual meshes
-
 loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
     const model = glb.scene;
-    scene.add(model);
-
-    model.traverse((child)=>{
-        if(child.isMesh){
-            interactableObjects.push(child);
-            console.log(child);
-        }
-        child.castShadow = true;
-        child.recieveShadow = true;
-
-        if(!child.name) child.name = THREE.MathUtils.generateUUID();
-
-        funiturePieces.push(child);
-    })
-    
-    console.log(funiturePieces);
-
-    funiturePieces.forEach((mesh)=>{
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        context.font = '30px Arial';
-        context.fillStyle = 'white';
-        context.fillText(mesh.name, 0, 30);
-
-        const texture = new THREE.CanvasTexture(canvas);
-        const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-        const sprite = new THREE.Sprite(spriteMaterial);
-
-        sprite.scale.set(1, 0.5, 1);
-        sprite.position.set(mesh.position.x, mesh.position.y + 1, mesh.position.z);
-
-        scene.add(sprite);
-    });
-
-});
-
-
-// --- EVENT LISTENERS --- //
-window.addEventListener('pointermove', onPointerMove);
-window.addEventListener('pointerup', () => {
-    //selectedPiece = null;
-});
-
-renderer.domElement.addEventListener('touchstart', (event) => {
-    if(isSelected) return;
-    if (event.touches.length !== 1) return;
-    
-    const touch = event.touches[0];
-    pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
-
-    raycaster.setFromCamera(pointer, camera);
-    const intersects = raycaster.intersectObjects(interactableObjects, true);
-
-    if (intersects.length > 0) {
-        touchStartTime = Date.now();
-        const target = intersects[0].object.parent; // top-level object
-        selectedPiece = null; // not yet selected
-
-        // check after holdThreshold
-        setTimeout(() => {
-            if (Date.now() - touchStartTime >= holdThreshold) {
-                selectedPiece = target;
-                isSelected = true;
-                doneButton.style.display = 'block';
-                controls.enabled = false;
-                console.log('Selected:', selectedPiece.name);
+    while (model.children.length > 0) {
+        const furniturePiece = model.children[0];
+        interactableObjects.push(furniturePiece);
+        furniturePiece.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
             }
-        }, holdThreshold);
+        });
+        scene.add(furniturePiece);
     }
 });
 
-renderer.domElement.addEventListener('touchmove', (event) => {
-    if (!selectedPiece) return;
-    event.preventDefault(); // prevent scrolling
-
-    const touch = event.touches[0];
-    pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
-
-    raycaster.setFromCamera(pointer, camera);
-
-    const plane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
-    const intersectionPoint = new THREE.Vector3();
-    if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-        selectedPiece.position.set(
-            intersectionPoint.x,
-            selectedPiece.position.y,
-            intersectionPoint.z
-        );
-    }
-});
-
-renderer.domElement.addEventListener('touchend', () => {
-    touchStartTime = 0;
-});
+// --- UNIFIED EVENT LISTENERS --- //
+renderer.domElement.addEventListener('pointerdown', onPointerDown);
+renderer.domElement.addEventListener('pointermove', onPointerMove);
+renderer.domElement.addEventListener('pointerup', onPointerUp);
+renderer.domElement.addEventListener('pointerleave', onPointerUp); // Also stop on leave
 
 function onPointerDown(event) {
-    if (!selectedPiece) return;
-
-    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
-
+    updatePointerPosition(event);
     raycaster.setFromCamera(pointer, camera);
     const intersects = raycaster.intersectObjects(interactableObjects, true);
 
-    if (intersects.length > 0) {
-        selectedPiece = intersects[0].object.parent; // pick parent mesh
-        console.log(`Selected: ${selectedPiece.name}`);
+    if (intersects.length === 0) return;
 
-        document.getElementById('info').innerText = `Selected: ${selectedPiece.name}`;
-    } else {
-        selectedPiece = null;
+    const topLevelObject = findTopLevelObject(intersects[0].object);
+    if (!topLevelObject) return;
+
+    // Case 1: An object is selected. Check if we're clicking it to start a drag.
+    if (isSelected) {
+        if (topLevelObject === selectedPiece) {
+            isDragging = true;
+            controls.enabled = false;
+        }
+        return;
+    }
+
+    // Case 2: No object is selected. Start the "hold-to-select" process.
+    holdTimeout = setTimeout(() => {
+        selectedPiece = topLevelObject;
+        isSelected = true;
+        doneButton.style.display = 'block';
+        console.log('Selected:', selectedPiece.name);
+        holdTimeout = null;
+    }, holdThreshold);
+}
+
+function onPointerMove(event) {
+    // If we move the pointer, it's not a "hold", so cancel the selection timeout
+    if (holdTimeout) {
+        clearTimeout(holdTimeout);
+        holdTimeout = null;
+    }
+
+    // IMPORTANT: Only move the object if we are actively dragging it.
+    if (isDragging) {
+        updatePointerPosition(event);
+        raycaster.setFromCamera(pointer, camera);
+        const intersectionPoint = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(groundPlane, intersectionPoint)) {
+            selectedPiece.position.set(
+                intersectionPoint.x,
+                selectedPiece.position.y,
+                intersectionPoint.z
+            );
+        }
     }
 }
 
-function onPointerMove(event) {                                            
+function onPointerUp() {
+    // If the pointer is released before the hold threshold, cancel the selection.
+    if (holdTimeout) {
+        clearTimeout(holdTimeout);
+        holdTimeout = null;
+    }
+    
+    // Stop any active drag and re-enable camera controls.
+    isDragging = false;
+    controls.enabled = true;
+}
+
+// --- HELPER FUNCTIONS --- //
+function updatePointerPosition(event) {
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+}
 
-    raycaster.setFromCamera(pointer, camera);
-
-    // Plane at y = 0 (ground)
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    const intersectionPoint = new THREE.Vector3();
-
-    if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-        selectedPiece.position.set(
-            intersectionPoint.x,
-            selectedPiece.position.y, // keep original height
-            intersectionPoint.z
-        );
+function findTopLevelObject(object) {
+    let parent = object;
+    while (parent) {
+        if (interactableObjects.includes(parent)) return parent;
+        parent = parent.parent;
     }
+    return null;
 }
 
-function animate(){
+// --- ANIMATION LOOP --- //
+function animate() {
     controls.update();
-    renderer.render(scene,camera);
+    renderer.render(scene, camera);
 }
+renderer.setAnimationLoop(animate);
