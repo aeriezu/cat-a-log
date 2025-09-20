@@ -1,11 +1,39 @@
+body {
+    margin: 0;
+    font-family: sans-serif;
+    /* Prevents scrollbars */
+    overflow: hidden; 
+}
+
 canvas {
     display: block;
-    /* This is the most important CSS property for this problem on Android */
+    /* This is the most important property for disabling browser gestures */
     touch-action: none; 
 
-    /* These are also helpful */
+    /* Disables the menu on long-press in iOS Safari */
+    -webkit-touch-callout: none;
+
+    /* Prevents users from selecting text, which can also trigger menus */
     -webkit-user-select: none;
     user-select: none;
-    -webkit-tap-highlight-color: transparent; /* Removes the tap highlight flash */
-    -webkit-touch-callout: none; /* This is mainly for iOS but doesn't hurt */
+
+    /* Removes the gray highlight box on tap in mobile browsers */
+    -webkit-tap-highlight-color: transparent;
+}
+
+#done-button {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 25px;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    background-color: #007aff;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    display: none; /* Hidden by default */
 }
