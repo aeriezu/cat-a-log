@@ -14,7 +14,6 @@ renderer.shadowMap.enabled = true;
 renderer.setAnimationLoop(animate);
 document.body.appendChild( renderer.domElement );
 
-
 // --- OBJECT SELECT --- //
 const interactableObjects = [];
 let selectedPiece = null;
@@ -34,7 +33,6 @@ doneButton.addEventListener('click', () => {
     selectedPiece = null;
     doneButton.style.display = 'none';
 });
-
 
 // --- GROUND --- //
 const ground = new THREE.Mesh(
