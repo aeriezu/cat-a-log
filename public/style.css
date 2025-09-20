@@ -1,4 +1,50 @@
-/* Add these new styles to your existing CSS file */
+body {
+    margin: 0;
+    font-family: sans-serif;
+    overflow: hidden; 
+    /* Add a background to see the box clearly */
+    background-color: #333;
+}
+
+#video-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* This makes the video cover the whole screen */
+    z-index: -1; /* Place it behind everything else */
+}
+
+#ar-container {
+    /* Center the box */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    
+    /* Set the size of the box */
+    width: 90vw;
+    height: 70vh;
+    
+    /* Style the box */
+    border: 2px solid white;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    overflow: hidden; /* Important: The canvas will be inside this */
+}
+
+/* Canvas now lives inside the container */
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none; 
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
 #furniture-menu {
     position: absolute;
     bottom: 20px;
@@ -23,7 +69,6 @@
 }
 
 #furniture-menu button.selected {
-    /* Style for the button when in "placing mode" */
     background-color: #007aff;
     border-color: #007aff;
 }
