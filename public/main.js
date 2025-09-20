@@ -132,7 +132,28 @@ renderer.domElement.addEventListener('touchstart', (event) => {
     }
 });
 
+// renderer.domElement.addEventListener('touchmove', (event) => {
+//     if (!selectedPiece) return;
+//     event.preventDefault(); // prevent scrolling
+
+//     const touch = event.touches[0];
+//     pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+//     pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
+
+//     raycaster.setFromCamera(pointer, camera);
+
+//     const plane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
+//     const intersectionPoint = new THREE.Vector3();
+//     if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
+//         selectedPiece.position.set(
+//             intersectionPoint.x,
+//             selectedPiece.position.y,
+//             intersectionPoint.z
+//         );
+//     }
+// });
 renderer.domElement.addEventListener('touchmove', (event) => {
+    // 1. Only run if a piece is selected
     if (!selectedPiece) return;
     event.preventDefault(); // prevent scrolling
 
@@ -142,14 +163,22 @@ renderer.domElement.addEventListener('touchmove', (event) => {
 
     raycaster.setFromCamera(pointer, camera);
 
-    const plane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
-    const intersectionPoint = new THREE.Vector3();
-    if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-        selectedPiece.position.set(
-            intersectionPoint.x,
-            selectedPiece.position.y,
-            intersectionPoint.z
-        );
+    // 2. Check if the pointer is intersecting with any interactable object
+    const intersects = raycaster.intersectObjects(interactableObjects, true);
+
+    // 3. Check if we hit an object AND if that object's parent is our selected piece
+    if (intersects.length > 0 && intersects[0].object.parent === selectedPiece) {
+        // 4. If the check passes, THEN move the piece along the ground plane
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const intersectionPoint = new THREE.Vector3();
+        
+        if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
+            selectedPiece.position.set(
+                intersectionPoint.x,
+                selectedPiece.position.y, // Keep original height
+                intersectionPoint.z
+            );
+        }
     }
 });
 
@@ -176,22 +205,49 @@ function onPointerDown(event) {
     }
 }
 
-function onPointerMove(event) {                                            
+// function onPointerMove(event) {                                            
+//     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+//     pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+//     raycaster.setFromCamera(pointer, camera);
+
+//     // Plane at y = 0 (ground)
+//     const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+//     const intersectionPoint = new THREE.Vector3();
+
+//     if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
+//         selectedPiece.position.set(
+//             intersectionPoint.x,
+//             selectedPiece.position.y, // keep original height
+//             intersectionPoint.z
+//         );
+//     }
+// }
+function onPointerMove(event) {
+    // 1. Only run if a piece is selected
+    if (!selectedPiece) return;
+                                           
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
     pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
 
     raycaster.setFromCamera(pointer, camera);
 
-    // Plane at y = 0 (ground)
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    const intersectionPoint = new THREE.Vector3();
+    // 2. Check if the pointer is intersecting with our selected piece
+    const intersects = raycaster.intersectObjects(interactableObjects, true);
 
-    if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-        selectedPiece.position.set(
-            intersectionPoint.x,
-            selectedPiece.position.y, // keep original height
-            intersectionPoint.z
-        );
+    // 3. If the pointer is over the selected piece, then move it
+    if (intersects.length > 0 && intersects[0].object.parent === selectedPiece) {
+        // Plane at y = 0 (ground)
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const intersectionPoint = new THREE.Vector3();
+
+        if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
+            selectedPiece.position.set(
+                intersectionPoint.x,
+                selectedPiece.position.y, // keep original height
+                intersectionPoint.z
+            );
+        }
     }
 }
 
