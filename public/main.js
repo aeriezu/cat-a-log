@@ -20,6 +20,7 @@ let selectedPiece = null;
 let touchStartTime = 0;
 const holdThreshold = 800;
 let isSelected = false;
+let isDragging = false;
 
 // --- OBJECT DONE BUTTON --- //
 const doneButton = document.createElement('button');
@@ -33,6 +34,7 @@ document.body.appendChild(doneButton);
 doneButton.addEventListener('click', () => {
     selectedPiece = null;
     isSelected = false;
+    isDragging = false; // <-- ADD THIS LINE
     doneButton.style.display = 'none';
     controls.enabled = true;
 });
@@ -99,8 +101,9 @@ loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
 
 // --- EVENT LISTENERS --- //
 window.addEventListener('pointermove', onPointerMove);
+// --- MOUSE UP --- //
 window.addEventListener('pointerup', () => {
-    //selectedPiece = null;
+    isDragging = false; // <-- ADD THIS LINE (your old one was empty)
 });
 
 renderer.domElement.addEventListener('touchstart', (event) => {
@@ -132,38 +135,72 @@ renderer.domElement.addEventListener('touchstart', (event) => {
     }
 });
 
-renderer.domElement.addEventListener('touchmove', (event) => {
-    // 1. Only run if a piece is selected
-    if (!selectedPiece) return;
-    event.preventDefault(); // prevent scrolling
+// renderer.domElement.addEventListener('touchmove', (event) => {
+//     // 1. Only run if a piece is selected
+//     if (!selectedPiece) return;
+//     event.preventDefault(); // prevent scrolling
 
+//     const touch = event.touches[0];
+//     pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+//     pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
+//     raycaster.setFromCamera(pointer, camera);
+
+//     // 2. Check if the pointer is intersecting with any interactable object
+//     const intersects = raycaster.intersectObjects(interactableObjects, true);
+
+//     // 3. Check if we hit an object AND if that object's parent is our selected piece
+//     if (intersects.length > 0 && intersects[0].object.parent === selectedPiece) {
+//         // 4. If the check passes, THEN move the piece along the ground plane
+//         const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+//         const intersectionPoint = new THREE.Vector3();
+        
+//         if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
+//             selectedPiece.position.set(
+//                 intersectionPoint.x,
+//                 selectedPiece.position.y, // Keep original height
+//                 intersectionPoint.z
+//             );
+//         }
+//     }
+// });
+// --- TOUCHMOVE --- //
+renderer.domElement.addEventListener('touchmove', (event) => {
+    if (!selectedPiece) return;
+    event.preventDefault();
+
+    // Always update pointer location
     const touch = event.touches[0];
     pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
     pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
-
     raycaster.setFromCamera(pointer, camera);
 
-    // 2. Check if the pointer is intersecting with any interactable object
-    const intersects = raycaster.intersectObjects(interactableObjects, true);
+    // If we have an object selected but aren't dragging it yet,
+    // check if the pointer is on the object to INITIATE the drag.
+    if (!isDragging) {
+        const intersects = raycaster.intersectObjects(interactableObjects, true);
+        if (intersects.length > 0 && intersects[0].object.parent === selectedPiece) {
+            isDragging = true;
+        }
+    }
 
-    // 3. Check if we hit an object AND if that object's parent is our selected piece
-    if (intersects.length > 0 && intersects[0].object.parent === selectedPiece) {
-        // 4. If the check passes, THEN move the piece along the ground plane
+    // If we are actively dragging, move the object.
+    if (isDragging) {
         const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
         const intersectionPoint = new THREE.Vector3();
-        
         if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
             selectedPiece.position.set(
                 intersectionPoint.x,
-                selectedPiece.position.y, // Keep original height
+                selectedPiece.position.y,
                 intersectionPoint.z
             );
         }
     }
 });
 
+// --- TOUCH END --- //
 renderer.domElement.addEventListener('touchend', () => {
     touchStartTime = 0;
+    isDragging = false; // <-- ADD THIS LINE
 });
 
 function onPointerDown(event) {
@@ -185,28 +222,57 @@ function onPointerDown(event) {
     }
 }
 
-function onPointerMove(event) {
-    // 1. Only run if a piece is selected
-    if (!selectedPiece) return;
+// function onPointerMove(event) {
+//     // 1. Only run if a piece is selected
+//     if (!selectedPiece) return;
                                            
+//     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+//     pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+//     raycaster.setFromCamera(pointer, camera);
+
+//     // 2. Check if the pointer is intersecting with our selected piece
+//     const intersects = raycaster.intersectObjects(interactableObjects, true);
+
+//     // 3. If the pointer is over the selected piece, then move it
+//     if (intersects.length > 0 && intersects[0].object.parent === selectedPiece) {
+//         // Plane at y = 0 (ground)
+//         const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+//         const intersectionPoint = new THREE.Vector3();
+
+//         if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
+//             selectedPiece.position.set(
+//                 intersectionPoint.x,
+//                 selectedPiece.position.y, // keep original height
+//                 intersectionPoint.z
+//             );
+//         }
+//     }
+// }
+function onPointerMove(event) {
+    if (!selectedPiece) return;
+
+    // Always update pointer location
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
     pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
-
     raycaster.setFromCamera(pointer, camera);
 
-    // 2. Check if the pointer is intersecting with our selected piece
-    const intersects = raycaster.intersectObjects(interactableObjects, true);
+    // Initiate drag on first move over the object
+    if (!isDragging) {
+        const intersects = raycaster.intersectObjects(interactableObjects, true);
+        if (intersects.length > 0 && intersects[0].object.parent === selectedPiece) {
+            isDragging = true;
+        }
+    }
 
-    // 3. If the pointer is over the selected piece, then move it
-    if (intersects.length > 0 && intersects[0].object.parent === selectedPiece) {
-        // Plane at y = 0 (ground)
+    // If dragging, move the object
+    if (isDragging) {
         const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
         const intersectionPoint = new THREE.Vector3();
-
         if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
             selectedPiece.position.set(
                 intersectionPoint.x,
-                selectedPiece.position.y, // keep original height
+                selectedPiece.position.y,
                 intersectionPoint.z
             );
         }
