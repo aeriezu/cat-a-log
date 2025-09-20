@@ -99,9 +99,10 @@ loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
 
 
 // --- EVENT LISTENERS --- //
-renderer.domElement.addEventListener('pointerdown', onPointerDown);
-renderer.domElement.addEventListener('pointermove', onPointerMove);
-//renderer.domElement.addEventListener('pointerup', onPointerUp);
+window.addEventListener('pointermove', onPointerMove);
+window.addEventListener('pointerup', () => {
+    //selectedPiece = null;
+});
 
 renderer.domElement.addEventListener('touchstart', (event) => {
     if(isSelected) return;
@@ -188,7 +189,7 @@ function onPointerDown(event) {
 function onPointerMove(event) {
     // 1. Only run if a piece is selected
     if (!selectedPiece) return;
-
+                                           
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
     pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
 
