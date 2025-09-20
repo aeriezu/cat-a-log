@@ -34,6 +34,7 @@ document.body.appendChild(doneButton);
 doneButton.addEventListener('click', () => {
     selectedPiece = null;
     isSelected = false;
+    doneButton.style.pointerEvents = 'auto';
     isDragging = false; // <-- ADD THIS LINE
     doneButton.style.display = 'none';
     controls.enabled = true;
@@ -70,7 +71,7 @@ loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
             console.log(child);
         }
         child.castShadow = true;
-        child.recieveShadow = true;
+        child.receiveShadow = true;
 
         if(!child.name) child.name = THREE.MathUtils.generateUUID();
 
