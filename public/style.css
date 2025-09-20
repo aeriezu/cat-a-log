@@ -1,6 +1,7 @@
 canvas {
-    -webkit-user-select: none;   /* Safari */
-    -webkit-touch-callout: none; /* Disable iOS/Android long-press menu */
+    display: block;
+    touch-action: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
     user-select: none;
-    touch-action: none;          /* Prevent browser gestures like pinch/scroll */
 }
