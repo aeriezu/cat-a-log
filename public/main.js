@@ -26,7 +26,7 @@ let objectToPlace = null; // The object we intend to place from the menu
 let ghostObject = null; // The semi-transparent preview
 
 // --- Model Loading & UI Creation (Corrected) --- //
-const loader = new GLTGLoader();
+const loader = new GLTFLoader();
 loader.load('low_poly_furnitures_full_bundle.glb', glb => {
     const furnitureMenu = document.getElementById('furniture-menu');
     
