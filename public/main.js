@@ -63,10 +63,15 @@ const loader = new GLTFLoader();
 const furniturePieces = [];
 
 loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
-    // We iterate through the direct children of the loaded scene
-    glb.scene.children.forEach(item => {
+    // This robust while-loop transfers children safely from the loaded scene to your main scene
+    while (glb.scene.children.length > 0) {
+        const item = glb.scene.children[0];
+
+        // The scene.add(item) call automatically removes it from glb.scene.children
+        scene.add(item);
+
         if (item.isGroup || item.isMesh) {
-            furniturePieces.push(item); // Use the consistent name
+            furniturePieces.push(item);
 
             if (!item.name) item.name = `item-${THREE.MathUtils.generateUUID()}`;
 
@@ -88,10 +93,7 @@ loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
                 }
             });
         }
-    });
-
-    // Add the items to the scene individually
-    scene.add(...furniturePieces);
+    }
 });
 
 
@@ -172,7 +174,12 @@ function updateCollisions(targetObject, potentialPosition) {
 }
 // --- TOUCHMOVE --- //
 renderer.domElement.addEventListener('touchmove', (event) => {
-    if (!selectedPiece || !isDragging) return; // Only move if we are in a dragging state
+    // Initiate the drag on the first touch move after selection
+    if (selectedPiece && !isDragging) {
+        isDragging = true;
+    }
+
+    if (!selectedPiece || !isDragging) return;
     event.preventDefault();
 
     const touch = event.touches[0];
@@ -184,16 +191,16 @@ renderer.domElement.addEventListener('touchmove', (event) => {
     const intersectionPoint = new THREE.Vector3();
 
     if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-        // This is where the object *wants* to go
         const potentialPosition = new THREE.Vector3(
             intersectionPoint.x,
             selectedPiece.position.y,
             intersectionPoint.z
         );
+        
+        // FIX: was checkCollisions, should be updateCollisions
+        const collision = updateCollisions(selectedPiece, potentialPosition);
 
-        // Check for collisions BEFORE moving the object
-        if (!checkCollisions(selectedPiece, potentialPosition)) {
-            // If no collisions, update the position
+        if (!collision) {
             selectedPiece.position.copy(potentialPosition);
         }
     }
@@ -229,11 +236,22 @@ function onPointerDown(event) {
 
 
 function onPointerMove(event) {
+    // Only run if a piece is selected and we have started dragging
     if (!selectedPiece || !isDragging) return;
-    // ... (pointer calculation code) ...
+
+    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const intersectionPoint = new THREE.Vector3();
 
     if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-        const potentialPosition = new THREE.Vector3(/*...*/);
+        const potentialPosition = new THREE.Vector3(
+            intersectionPoint.x,
+            selectedPiece.position.y,
+            intersectionPoint.z
+        );
 
         // Call the new function. It returns true if there is a collision.
         const collision = updateCollisions(selectedPiece, potentialPosition);
@@ -247,20 +265,17 @@ function onPointerMove(event) {
 const clock = new THREE.Clock(); // Add this at the top of your script
 
 function animate() {
-    const deltaTime = clock.getDelta(); // Use delta time for smooth, frame-rate independent animation
-    const fadeSpeed = deltaTime * 5; // Adjust this value to change fade speed
+    const deltaTime = clock.getDelta();
+    const fadeSpeed = deltaTime * 5;
 
-    // Update all box helpers
-    interactableObjects.forEach(object => {
+    // IMPORTANT: Loop over 'furniturePieces', not the empty 'interactableObjects'
+    furniturePieces.forEach(object => {
         const helper = object.userData.boxHelper;
         if (helper) {
-            // Keep the helper's box in sync with the object's position
             helper.box.setFromObject(object);
 
-            // Determine target opacity based on collision state
             const targetOpacity = object.userData.isColliding ? 1.0 : 0.0;
             
-            // Smoothly move current opacity towards the target
             if (helper.material.opacity < targetOpacity) {
                 helper.material.opacity = Math.min(targetOpacity, helper.material.opacity + fadeSpeed);
             } else if (helper.material.opacity > targetOpacity) {
