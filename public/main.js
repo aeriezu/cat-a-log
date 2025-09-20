@@ -132,26 +132,6 @@ renderer.domElement.addEventListener('touchstart', (event) => {
     }
 });
 
-// renderer.domElement.addEventListener('touchmove', (event) => {
-//     if (!selectedPiece) return;
-//     event.preventDefault(); // prevent scrolling
-
-//     const touch = event.touches[0];
-//     pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-//     pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
-
-//     raycaster.setFromCamera(pointer, camera);
-
-//     const plane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
-//     const intersectionPoint = new THREE.Vector3();
-//     if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-//         selectedPiece.position.set(
-//             intersectionPoint.x,
-//             selectedPiece.position.y,
-//             intersectionPoint.z
-//         );
-//     }
-// });
 renderer.domElement.addEventListener('touchmove', (event) => {
     // 1. Only run if a piece is selected
     if (!selectedPiece) return;
@@ -205,24 +185,6 @@ function onPointerDown(event) {
     }
 }
 
-// function onPointerMove(event) {                                            
-//     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-//     pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
-
-//     raycaster.setFromCamera(pointer, camera);
-
-//     // Plane at y = 0 (ground)
-//     const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-//     const intersectionPoint = new THREE.Vector3();
-
-//     if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-//         selectedPiece.position.set(
-//             intersectionPoint.x,
-//             selectedPiece.position.y, // keep original height
-//             intersectionPoint.z
-//         );
-//     }
-// }
 function onPointerMove(event) {
     // 1. Only run if a piece is selected
     if (!selectedPiece) return;
