@@ -2,23 +2,26 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-//raycaster setup (object selection)
-const raycaster = new THREE.Raycaster();
-const pointer = new THREE.Vector2();
+// --- SCENE, CAMERA, RENDERER --- //
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+camera.position.z = 5;
+
+const renderer = new THREE.WebGLRenderer({antialias: true});
+renderer.setSize( window.innerWidth, window.innerHeight );
+renderer.shadowMap.enabled = true;
+renderer.setAnimationLoop(animate);
+document.body.appendChild( renderer.domElement );
+
+
+// --- OBJECT SELECT --- //
 const interactableObjects = [];
 let selectedPiece = null;
 let touchStartTime = 0;
 const holdThreshold = 800;
 
-const GRID_SIZE = 1; // 1 unit per cell
-const grid = new Map(); // store occupied cells
-
-function posToCell(pos) {
-    const x = Math.round(pos.x / GRID_SIZE);
-    const z = Math.round(pos.z / GRID_SIZE);
-    return `${x},${z}`;
-}
-
+// --- OBJECT DONE BUTTON --- //
 const doneButton = document.createElement('button');
 doneButton.innerText = '✔️';
 doneButton.style.position = 'absolute';
@@ -32,17 +35,8 @@ doneButton.addEventListener('click', () => {
     doneButton.style.display = 'none';
 });
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
-camera.position.z = 5;
-
-const renderer = new THREE.WebGLRenderer({antialias: true});
-renderer.setSize( window.innerWidth, window.innerHeight );
-renderer.shadowMap.enabled = true;
-renderer.setAnimationLoop(animate);
-document.body.appendChild( renderer.domElement );
-
+// --- GROUND --- //
 const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(30,30),
     new THREE.MeshStandardMaterial({color: 0xcccccc})
@@ -51,7 +45,14 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
+// --- CONTROLS --- //
 const controls = new OrbitControls( camera, renderer.domElement );
+
+// --- RAYCASTING AND POINTER -- //
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+// --- GLTF LOADER --- //
 const loader = new GLTFLoader();
 
 const funiturePieces = [] // store invidual meshes
@@ -93,6 +94,14 @@ loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
     });
 
 });
+
+
+// --- EVENT LISTENERS --- //
+window.addEventListener('pointermove', onPointerMove);
+window.addEventListener('pointerup', () => {
+    selectedPiece = null;
+});
+
 
 renderer.domElement.addEventListener('touchstart', (event) => {
     if (event.touches.length !== 1) return;
@@ -184,11 +193,6 @@ function onPointerMove(event) {
     }
 }
 
-window.addEventListener('pointermove', onPointerMove);
-
-window.addEventListener('pointerup', () => {
-    selectedPiece = null;
-});
 
 function animate(){
     controls.update();
