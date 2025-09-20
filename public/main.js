@@ -65,38 +65,29 @@ loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
     const model = glb.scene;
     scene.add(model);
 
-    model.traverse((child)=>{
-        if(child.isMesh){
+    model.traverse((child) => {
+        if (child.isMesh) {
             interactableObjects.push(child);
-            console.log(child);
+            child.castShadow = true;
+            child.receiveShadow = true;
+            if (!child.name) child.name = THREE.MathUtils.generateUUID();
+            funiturePieces.push(child);
+
+            // --- NEW: Create and configure the helper ---
+            const box = new THREE.Box3().setFromObject(child);
+            const helper = new THREE.Box3Helper(box, 0xff0000); // Red color for collision
+
+            // Make material transparent so we can fade it
+            helper.material.transparent = true;
+            helper.material.opacity = 0; // Start fully transparent
+            scene.add(helper);
+
+            // Store the helper and collision state on the object itself
+            child.userData.boxHelper = helper;
+            child.userData.isColliding = false;
+            // ---------------------------------------------
         }
-        child.castShadow = true;
-        child.receiveShadow = true;
-
-        if(!child.name) child.name = THREE.MathUtils.generateUUID();
-
-        funiturePieces.push(child);
-    })
-    
-    console.log(funiturePieces);
-
-    funiturePieces.forEach((mesh)=>{
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        context.font = '30px Arial';
-        context.fillStyle = 'white';
-        context.fillText(mesh.name, 0, 30);
-
-        const texture = new THREE.CanvasTexture(canvas);
-        const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-        const sprite = new THREE.Sprite(spriteMaterial);
-
-        sprite.scale.set(1, 0.5, 1);
-        sprite.position.set(mesh.position.x, mesh.position.y + 1, mesh.position.z);
-
-        scene.add(sprite);
     });
-
 });
 
 
@@ -104,7 +95,11 @@ loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
 window.addEventListener('pointermove', onPointerMove);
 // --- MOUSE UP --- //
 window.addEventListener('pointerup', () => {
-    isDragging = false; // <-- ADD THIS LINE (your old one was empty)
+    // When we let go, reset the collision state of the piece we were holding
+    if (selectedPiece) {
+        selectedPiece.userData.isColliding = false;
+    }
+    isDragging = false;
 });
 
 renderer.domElement.addEventListener('touchstart', (event) => {
@@ -136,64 +131,65 @@ renderer.domElement.addEventListener('touchstart', (event) => {
     }
 });
 
-// renderer.domElement.addEventListener('touchmove', (event) => {
-//     // 1. Only run if a piece is selected
-//     if (!selectedPiece) return;
-//     event.preventDefault(); // prevent scrolling
+//--COLLISION LOGIC--
+/**
+ * Checks for collisions and updates the .isColliding state on all objects.
+ * @param {THREE.Object3D} targetObject - The object being moved.
+ * @param {THREE.Vector3} potentialPosition - The position to test.
+ * @returns {boolean} - True if a collision was detected.
+ */
+function updateCollisions(targetObject, potentialPosition) {
+    let collisionDetected = false;
+    
+    const originalBox = new THREE.Box3().setFromObject(targetObject);
+    const displacement = new THREE.Vector3().subVectors(potentialPosition, targetObject.position);
+    const testBox = originalBox.clone().translate(displacement);
 
-//     const touch = event.touches[0];
-//     pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-//     pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
-//     raycaster.setFromCamera(pointer, camera);
+    // Check against all other objects
+    for (const otherObject of interactableObjects) {
+        if (otherObject === targetObject) continue;
 
-//     // 2. Check if the pointer is intersecting with any interactable object
-//     const intersects = raycaster.intersectObjects(interactableObjects, true);
+        const otherBox = new THREE.Box3().setFromObject(otherObject);
+        if (testBox.intersectsBox(otherBox)) {
+            // A collision is happening with this specific object
+            otherObject.userData.isColliding = true;
+            collisionDetected = true;
+        } else {
+            // No collision with this specific object
+            otherObject.userData.isColliding = false;
+        }
+    }
 
-//     // 3. Check if we hit an object AND if that object's parent is our selected piece
-//     if (intersects.length > 0 && intersects[0].object.parent === selectedPiece) {
-//         // 4. If the check passes, THEN move the piece along the ground plane
-//         const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-//         const intersectionPoint = new THREE.Vector3();
-        
-//         if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-//             selectedPiece.position.set(
-//                 intersectionPoint.x,
-//                 selectedPiece.position.y, // Keep original height
-//                 intersectionPoint.z
-//             );
-//         }
-//     }
-// });
+    // Update the state of the object being dragged
+    targetObject.userData.isColliding = collisionDetected;
+
+    return collisionDetected;
+}
 // --- TOUCHMOVE --- //
 renderer.domElement.addEventListener('touchmove', (event) => {
-    if (!selectedPiece) return;
+    if (!selectedPiece || !isDragging) return; // Only move if we are in a dragging state
     event.preventDefault();
 
-    // Always update pointer location
     const touch = event.touches[0];
     pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
     pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
 
-    // If we have an object selected but aren't dragging it yet,
-    // check if the pointer is on the object to INITIATE the drag.
-    if (!isDragging) {
-        const intersects = raycaster.intersectObjects(interactableObjects, true);
-        if (intersects.length > 0 && intersects[0].object.parent === selectedPiece) {
-            isDragging = true;
-        }
-    }
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const intersectionPoint = new THREE.Vector3();
 
-    // If we are actively dragging, move the object.
-    if (isDragging) {
-        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-        const intersectionPoint = new THREE.Vector3();
-        if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-            selectedPiece.position.set(
-                intersectionPoint.x,
-                selectedPiece.position.y,
-                intersectionPoint.z
-            );
+    if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
+        // This is where the object *wants* to go
+        const potentialPosition = new THREE.Vector3(
+            intersectionPoint.x,
+            selectedPiece.position.y,
+            intersectionPoint.z
+        );
+
+        // Check for collisions BEFORE moving the object
+        if (!checkCollisions(selectedPiece, potentialPosition)) {
+            // If no collisions, update the position
+            selectedPiece.position.copy(potentialPosition);
         }
     }
 });
@@ -201,7 +197,10 @@ renderer.domElement.addEventListener('touchmove', (event) => {
 // --- TOUCH END --- //
 renderer.domElement.addEventListener('touchend', () => {
     touchStartTime = 0;
-    isDragging = false; // <-- ADD THIS LINE
+    if (selectedPiece) {
+        selectedPiece.userData.isColliding = false;
+    }
+    isDragging = false;
 });
 
 function onPointerDown(event) {
@@ -223,64 +222,48 @@ function onPointerDown(event) {
     }
 }
 
-// function onPointerMove(event) {
-//     // 1. Only run if a piece is selected
-//     if (!selectedPiece) return;
-                                           
-//     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-//     pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
 
-//     raycaster.setFromCamera(pointer, camera);
-
-//     // 2. Check if the pointer is intersecting with our selected piece
-//     const intersects = raycaster.intersectObjects(interactableObjects, true);
-
-//     // 3. If the pointer is over the selected piece, then move it
-//     if (intersects.length > 0 && intersects[0].object.parent === selectedPiece) {
-//         // Plane at y = 0 (ground)
-//         const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-//         const intersectionPoint = new THREE.Vector3();
-
-//         if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-//             selectedPiece.position.set(
-//                 intersectionPoint.x,
-//                 selectedPiece.position.y, // keep original height
-//                 intersectionPoint.z
-//             );
-//         }
-//     }
-// }
 function onPointerMove(event) {
-    if (!selectedPiece) return;
+    if (!selectedPiece || !isDragging) return;
+    // ... (pointer calculation code) ...
 
-    // Always update pointer location
-    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(pointer, camera);
+    if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
+        const potentialPosition = new THREE.Vector3(/*...*/);
 
-    // Initiate drag on first move over the object
-    if (!isDragging) {
-        const intersects = raycaster.intersectObjects(interactableObjects, true);
-        if (intersects.length > 0 && intersects[0].object.parent === selectedPiece) {
-            isDragging = true;
-        }
-    }
-
-    // If dragging, move the object
-    if (isDragging) {
-        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-        const intersectionPoint = new THREE.Vector3();
-        if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-            selectedPiece.position.set(
-                intersectionPoint.x,
-                selectedPiece.position.y,
-                intersectionPoint.z
-            );
+        // Call the new function. It returns true if there is a collision.
+        const collision = updateCollisions(selectedPiece, potentialPosition);
+        
+        if (!collision) {
+            selectedPiece.position.copy(potentialPosition);
         }
     }
 }
 
-function animate(){
+const clock = new THREE.Clock(); // Add this at the top of your script
+
+function animate() {
+    const deltaTime = clock.getDelta(); // Use delta time for smooth, frame-rate independent animation
+    const fadeSpeed = deltaTime * 5; // Adjust this value to change fade speed
+
+    // Update all box helpers
+    interactableObjects.forEach(object => {
+        const helper = object.userData.boxHelper;
+        if (helper) {
+            // Keep the helper's box in sync with the object's position
+            helper.box.setFromObject(object);
+
+            // Determine target opacity based on collision state
+            const targetOpacity = object.userData.isColliding ? 1.0 : 0.0;
+            
+            // Smoothly move current opacity towards the target
+            if (helper.material.opacity < targetOpacity) {
+                helper.material.opacity = Math.min(targetOpacity, helper.material.opacity + fadeSpeed);
+            } else if (helper.material.opacity > targetOpacity) {
+                helper.material.opacity = Math.max(targetOpacity, helper.material.opacity - fadeSpeed);
+            }
+        }
+    });
+
     controls.update();
-    renderer.render(scene,camera);
+    renderer.render(scene, camera);
 }
