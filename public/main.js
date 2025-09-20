@@ -26,7 +26,7 @@ const doneButton = document.createElement('button');
 doneButton.innerText = '✔️';
 doneButton.style.position = 'absolute';
 doneButton.style.top = '10px';
-doneButton.style.right = '10px';58795
+doneButton.style.right = '10px';
 doneButton.style.display = 'none';
 document.body.appendChild(doneButton);
 
@@ -192,7 +192,6 @@ function onPointerMove(event) {
         );
     }
 }
-
 
 function animate(){
     controls.update();
