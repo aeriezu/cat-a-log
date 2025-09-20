@@ -97,6 +97,8 @@ function createLabel(mesh) {
 }
 
 // --- GLTF LOADING --- //
+const loader = new GLTFLoader();
+
 loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
     const model = glb.scene;
     scene.add(model);
