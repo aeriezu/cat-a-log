@@ -90,6 +90,8 @@ doneButton.addEventListener('click', () => {
     doneButton.style.display = 'none';
 });
 
+renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+
 // --- TOUCH EVENTS: HOLD TO SELECT --- //
 renderer.domElement.addEventListener('touchstart', event => {
     event.preventDefault(); // prevent browser long-press behavior
@@ -128,8 +130,39 @@ renderer.domElement.addEventListener('touchend', event => {
     touchStartTime = 0;
 });
 
-renderer.domElement.addEventListener('touchmove', event => {
-    event.preventDefault(); // prevent scrolling/long-press default
+renderer.domElement.addEventListener('pointerdown', event => {
+    event.preventDefault(); // blocks browser default menu
+
+    if(selectedPiece) return; // already holding
+
+    if(event.pointerType !== 'touch') return; // only handle touch for AR
+
+    const pointer = new THREE.Vector2(
+        (event.clientX / window.innerWidth) * 2 - 1,
+        - (event.clientY / window.innerHeight) * 2 + 1
+    );
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(pointer, camera);
+    const intersects = raycaster.intersectObjects(interactableObjects, true);
+
+    if(intersects.length > 0){
+        const target = intersects[0].object.parent;
+        touchStartTime = Date.now();
+
+        setTimeout(() => {
+            if(Date.now() - touchStartTime >= holdThreshold){
+                selectedPiece = target;
+                isDragging = true;
+                doneButton.style.display = 'block';
+            }
+        }, holdThreshold);
+    }
+});
+
+renderer.domElement.addEventListener('pointerup', event => {
+    event.preventDefault();
+    touchStartTime = 0;
 });
 
 // --- ANIMATE / MOVE FURNITURE --- //
