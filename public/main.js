@@ -12,6 +12,13 @@ renderer.xr.enabled = true;
 document.body.appendChild(renderer.domElement);
 document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures:['hit-test'] }));
 
+const canvas = renderer.domElement;
+
+['mousedown', 'mouseup', 'pointerdown', 'pointerup', 'touchstart', 'touchend', 'contextmenu'].forEach(evt => {
+    canvas.addEventListener(evt, e => e.preventDefault());
+});
+canvas.addEventListener('gesturestart', e => e.preventDefault());
+
 // --- LIGHT --- //
 const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
 scene.add(light);
@@ -98,36 +105,53 @@ renderer.domElement.style.webkitUserSelect = 'none';
 renderer.domElement.style.webkitTouchCallout = 'none';
 
 // --- TOUCH EVENTS: HOLD TO SELECT --- //
-renderer.domElement.addEventListener('touchstart', event => {
-    event.preventDefault(); // prevent browser long-press behavior
+// --- TOUCH EVENTS: HOLD TO SELECT (REVISED) --- //
 
-    if(selectedPiece) return; // already holding
+let selectTimeout;
 
-    if(event.touches.length !== 1) return;
-    const touch = event.touches[0];
-    const pointer = new THREE.Vector2(
-        (touch.clientX / window.innerWidth) * 2 - 1,
-        - (touch.clientY / window.innerHeight) * 2 + 1
-    );
-
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(pointer, camera);
-    const intersects = raycaster.intersectObjects(interactableObjects, true);
-
-    if(intersects.length > 0){
-        const target = intersects[0].object.parent;
-        touchStartTime = Date.now();
-
-        // Long press detection
-        setTimeout(() => {
-            if(Date.now() - touchStartTime >= holdThreshold){
-                selectedPiece = target;
-                isDragging = true;
-                doneButton.style.display = 'block';
-                console.log('Selected:', selectedPiece.name);
-            }
-        }, holdThreshold);
+renderer.domElement.addEventListener('pointerdown', event => {
+    // Prevent default browser actions like text selection, scrolling, or context menu
+    event.preventDefault();
+    
+    // Cancel any pending vibration/haptic feedback on Android
+    if (navigator.vibrate) {
+        navigator.vibrate(0);
     }
+
+    if (selectedPiece || event.pointerType !== 'touch') return;
+
+    // Start a timer to detect a long press
+    selectTimeout = setTimeout(() => {
+        const pointer = new THREE.Vector2(
+            (event.clientX / window.innerWidth) * 2 - 1,
+            -(event.clientY / window.innerHeight) * 2 + 1
+        );
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(pointer, camera);
+        const intersects = raycaster.intersectObjects(interactableObjects, true);
+
+        if (intersects.length > 0) {
+            const target = intersects[0].object.parent; // Assuming parent is the whole object
+            selectedPiece = target;
+            isDragging = true;
+            doneButton.style.display = 'block';
+            console.log('Selected:', selectedPiece.name);
+        }
+    }, holdThreshold);
+});
+
+// If the finger is lifted before the timer finishes, it's a tap, not a hold.
+renderer.domElement.addEventListener('pointerup', event => {
+    event.preventDefault();
+    // Cancel the pending selection timer
+    clearTimeout(selectTimeout);
+});
+
+// If the finger moves too much, it's a drag/swipe, not a hold.
+renderer.domElement.addEventListener('pointermove', event => {
+    // Optional: cancel the hold if the user starts dragging their finger
+    // This prevents accidental selections when trying to swipe.
+    // clearTimeout(selectTimeout); 
 });
 
 renderer.domElement.addEventListener('touchend', event => {
@@ -163,11 +187,6 @@ renderer.domElement.addEventListener('pointerdown', event => {
             }
         }, holdThreshold);
     }
-});
-
-renderer.domElement.addEventListener('pointerup', event => {
-    event.preventDefault();
-    touchStartTime = 0;
 });
 
 // --- ANIMATE / MOVE FURNITURE --- //

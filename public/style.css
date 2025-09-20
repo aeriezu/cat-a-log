@@ -1,7 +1,11 @@
 canvas {
     display: block;
-    touch-action: none;
+    /* This is the most important CSS property for this problem on Android */
+    touch-action: none; 
+
+    /* These are also helpful */
     -webkit-user-select: none;
-    -webkit-touch-callout: none;
     user-select: none;
+    -webkit-tap-highlight-color: transparent; /* Removes the tap highlight flash */
+    -webkit-touch-callout: none; /* This is mainly for iOS but doesn't hurt */
 }
