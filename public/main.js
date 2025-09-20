@@ -13,8 +13,17 @@ camera.position.z = 5;
 
 const renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.setSize( window.innerWidth, window.innerHeight );
+renderer.shadowMap.enabled = true;
 renderer.setAnimationLoop(animate);
 document.body.appendChild( renderer.domElement );
+
+const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(30,30),
+    new THREE.MeshStandardMaterial({color: 0xcccccc})
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
 
 
 const controls = new OrbitControls( camera, renderer.domElement );
@@ -25,8 +34,10 @@ const funiturePieces = [] // store invidual meshes
 loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
     const model = glb.scene;
     scene.add(model);
+
     model.traverse((child)=>{
         if(child.isMesh){
+            interactableObjects.push(child);
             console.log(child);
         }
         child.castShadow = true;
@@ -57,6 +68,24 @@ loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
 
 });
 
+function onPointerDown(event) {
+    // Calculate pointer position in normalized device coordinates
+    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(pointer, camera);
+    const intersects = raycaster.intersectObjects(interactableObjects);
+
+    if (intersects.length > 0) {
+        const clickedObject = intersects[0].object;
+        console.log(`Tapped on: ${clickedObject.name}`);
+        
+        // Update the UI element
+        document.getElementById('info').innerText = `Selected: ${clickedObject.name}`;
+    }
+}
+
+window.addEventListener('pointerdown', onPointerDown);
 function animate(){
     controls.update();
     renderer.render(scene,camera);
