@@ -25,13 +25,21 @@ let isMovingObject = false;
 let objectToPlace = null; // The object we intend to place from the menu
 let ghostObject = null; // The semi-transparent preview
 
-// --- Model Loading & UI Creation --- //
-const loader = new GLTFLoader();
+// --- Model Loading & UI Creation (Corrected) --- //
+const loader = new GLTGLoader();
 loader.load('low_poly_furnitures_full_bundle.glb', glb => {
     const furnitureMenu = document.getElementById('furniture-menu');
     
-    // Process each piece of furniture in the bundle
-    glb.scene.children.forEach(piece => {
+    // The main parent object that holds all the furniture
+    const furnitureBundle = glb.scene; 
+    
+    // We don't add the whole bundle to the scene directly.
+    // Instead, we find the individual pieces within it.
+    
+    // FIX: The individual pieces are children of the first object in the bundle.
+    const individualPieces = furnitureBundle.children[0].children;
+
+    individualPieces.forEach(piece => {
         if (piece.isObject3D && piece.name) {
             // Store the original piece for cloning
             furniturePieces.set(piece.name, piece);
@@ -59,7 +67,7 @@ loader.load('low_poly_furnitures_full_bundle.glb', glb => {
                         });
                     }
                 });
-                ghostObject.visible = false; // It will be made visible when the hit-test finds a surface
+                ghostObject.visible = false; 
                 scene.add(ghostObject);
             });
             furnitureMenu.appendChild(button);
