@@ -2,15 +2,26 @@
 <html lang="en" dir="ltr">
     <head>
         <title>WebXR App</title>
+        <style>
+            body { margin: 0; }
+        </style>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://cdn.jsdelivr.net/npm/three@v0.180.0/build/three.module.js",
+                    "three/addons/": "https://cdn.jsdelivr.net/npm/three@v0.180.0/examples/jsm/"
+                }
+            }
+        </script>
     </head>
 
     <body>
         <!-- Container for XR DOM Overlay elements -->
         <div id="xr-ui-container"></div>
-
+            <script type="module" src="/main.js"></script>
         <div id="app-root"></div>
     </body>
 </html>
