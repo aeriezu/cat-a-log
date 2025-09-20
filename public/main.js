@@ -5,7 +5,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // --- SCENE, CAMERA, RENDERER --- //
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(4, 5, 7); // Adjusted for a better initial view
+camera.position.set(4, 5, 7);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -13,12 +13,14 @@ renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
 // --- STATE MANAGEMENT --- //
-const interactableObjects = []; // Stores top-level furniture groups
+const interactableObjects = [];
 let selectedPiece = null;
-let isSelected = false;   // Is an object in the "selected" state?
-let isDragging = false;   // Is the user actively dragging the selected object?
+let isSelected = false;
+let isDragging = false;
 let holdTimeout = null;
-const holdThreshold = 500; // A shorter hold time feels more responsive
+const holdThreshold = 500;
+let startPointer = new THREE.Vector2();
+const dragThreshold = 0.02;
 
 // --- UI ELEMENTS --- //
 const doneButton = document.createElement('button');
@@ -83,19 +85,19 @@ loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
 renderer.domElement.addEventListener('pointerdown', onPointerDown);
 renderer.domElement.addEventListener('pointermove', onPointerMove);
 renderer.domElement.addEventListener('pointerup', onPointerUp);
-renderer.domElement.addEventListener('pointerleave', onPointerUp); // Also stop on leave
+renderer.domElement.addEventListener('pointerleave', onPointerUp);
 
 function onPointerDown(event) {
     updatePointerPosition(event);
+    startPointer.copy(pointer);
+
     raycaster.setFromCamera(pointer, camera);
     const intersects = raycaster.intersectObjects(interactableObjects, true);
-
     if (intersects.length === 0) return;
 
     const topLevelObject = findTopLevelObject(intersects[0].object);
     if (!topLevelObject) return;
 
-    // Case 1: An object is selected. Check if we're clicking it to start a drag.
     if (isSelected) {
         if (topLevelObject === selectedPiece) {
             isDragging = true;
@@ -103,27 +105,35 @@ function onPointerDown(event) {
         }
         return;
     }
+    
+    // CHANGED: Immediately disable controls when pressing on an object
+    // This prevents the camera from panning while we check for a hold.
+    controls.enabled = false;
 
-    // Case 2: No object is selected. Start the "hold-to-select" process.
     holdTimeout = setTimeout(() => {
         selectedPiece = topLevelObject;
         isSelected = true;
         doneButton.style.display = 'block';
         console.log('Selected:', selectedPiece.name);
         holdTimeout = null;
+        // NOTE: Controls remain disabled after selection until pointerup.
     }, holdThreshold);
 }
 
 function onPointerMove(event) {
-    // If we move the pointer, it's not a "hold", so cancel the selection timeout
+    updatePointerPosition(event);
+
     if (holdTimeout) {
-        clearTimeout(holdTimeout);
-        holdTimeout = null;
+        if (pointer.distanceTo(startPointer) > dragThreshold) {
+            // User moved too far; it's a pan, not a hold.
+            clearTimeout(holdTimeout);
+            holdTimeout = null;
+            // CHANGED: Re-enable controls so the user can pan the camera.
+            controls.enabled = true;
+        }
     }
 
-    // IMPORTANT: Only move the object if we are actively dragging it.
     if (isDragging) {
-        updatePointerPosition(event);
         raycaster.setFromCamera(pointer, camera);
         const intersectionPoint = new THREE.Vector3();
         if (raycaster.ray.intersectPlane(groundPlane, intersectionPoint)) {
@@ -137,13 +147,13 @@ function onPointerMove(event) {
 }
 
 function onPointerUp() {
-    // If the pointer is released before the hold threshold, cancel the selection.
+    // If pointer is released on a short tap, it wasn't a hold.
     if (holdTimeout) {
         clearTimeout(holdTimeout);
         holdTimeout = null;
     }
     
-    // Stop any active drag and re-enable camera controls.
+    // Stop any active drag and ALWAYS re-enable camera controls on pointer up.
     isDragging = false;
     controls.enabled = true;
 }
