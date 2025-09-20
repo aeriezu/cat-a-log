@@ -59,35 +59,39 @@ const pointer = new THREE.Vector2();
 // --- GLTF LOADER --- //
 const loader = new GLTFLoader();
 
-const funiturePieces = [] // store invidual meshes
+// This is our main array, now consistently named
+const furniturePieces = [];
 
 loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
-    const model = glb.scene;
-    scene.add(model);
+    // We iterate through the direct children of the loaded scene
+    glb.scene.children.forEach(item => {
+        if (item.isGroup || item.isMesh) {
+            furniturePieces.push(item); // Use the consistent name
 
-    model.traverse((child) => {
-        if (child.isMesh) {
-            interactableObjects.push(child);
-            child.castShadow = true;
-            child.receiveShadow = true;
-            if (!child.name) child.name = THREE.MathUtils.generateUUID();
-            funiturePieces.push(child);
+            if (!item.name) item.name = `item-${THREE.MathUtils.generateUUID()}`;
 
-            // --- NEW: Create and configure the helper ---
-            const box = new THREE.Box3().setFromObject(child);
-            const helper = new THREE.Box3Helper(box, 0xff0000); // Red color for collision
-
-            // Make material transparent so we can fade it
+            // Configure the helper for this top-level item
+            const box = new THREE.Box3().setFromObject(item);
+            const helper = new THREE.Box3Helper(box, 0xff0000); // Red color
             helper.material.transparent = true;
-            helper.material.opacity = 0; // Start fully transparent
+            helper.material.opacity = 0;
             scene.add(helper);
+            
+            item.userData.boxHelper = helper;
+            item.userData.isColliding = false;
 
-            // Store the helper and collision state on the object itself
-            child.userData.boxHelper = helper;
-            child.userData.isColliding = false;
-            // ---------------------------------------------
+            // Traverse this item to set properties on all its children
+            item.traverse(child => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
         }
     });
+
+    // Add the items to the scene individually
+    scene.add(...furniturePieces);
 });
 
 
@@ -103,24 +107,22 @@ window.addEventListener('pointerup', () => {
 });
 
 renderer.domElement.addEventListener('touchstart', (event) => {
-    if(isSelected) return;
-    if (event.touches.length !== 1) return;
-    
-    const touch = event.touches[0];
-    pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
+    //... (pointer calculation code) ...
 
     raycaster.setFromCamera(pointer, camera);
-    const intersects = raycaster.intersectObjects(interactableObjects, true);
+    // Use the furniturePieces array for raycasting
+    const intersects = raycaster.intersectObjects(furniturePieces, true);
 
     if (intersects.length > 0) {
         touchStartTime = Date.now();
-        const target = intersects[0].object.parent; // top-level object
-        selectedPiece = null; // not yet selected
+        // Find the top-level parent from our list
+        let target = intersects[0].object;
+        while (target.parent && !furniturePieces.includes(target)) {
+            target = target.parent;
+        }
 
-        // check after holdThreshold
         setTimeout(() => {
-            if (Date.now() - touchStartTime >= holdThreshold) {
+            if (Date.now() - touchStartTime >= holdThreshold && !isSelected) {
                 selectedPiece = target;
                 isSelected = true;
                 doneButton.style.display = 'block';
@@ -140,29 +142,32 @@ renderer.domElement.addEventListener('touchstart', (event) => {
  */
 function updateCollisions(targetObject, potentialPosition) {
     let collisionDetected = false;
-    
+    targetObject.userData.isColliding = false;
+
+    const testBox = new THREE.Box3();
     const originalBox = new THREE.Box3().setFromObject(targetObject);
     const displacement = new THREE.Vector3().subVectors(potentialPosition, targetObject.position);
-    const testBox = originalBox.clone().translate(displacement);
+    testBox.copy(originalBox).translate(displacement);
 
-    // Check against all other objects
-    for (const otherObject of interactableObjects) {
-        if (otherObject === targetObject) continue;
-
-        const otherBox = new THREE.Box3().setFromObject(otherObject);
-        if (testBox.intersectsBox(otherBox)) {
-            // A collision is happening with this specific object
-            otherObject.userData.isColliding = true;
-            collisionDetected = true;
-        } else {
-            // No collision with this specific object
+    // First pass: Reset collision state
+    for (const otherObject of furniturePieces) {
+        if (otherObject !== targetObject) {
             otherObject.userData.isColliding = false;
         }
     }
 
-    // Update the state of the object being dragged
-    targetObject.userData.isColliding = collisionDetected;
+    // Second pass: Check for new collisions
+    for (const otherObject of furniturePieces) {
+        if (otherObject === targetObject) continue;
 
+        const otherBox = new THREE.Box3().setFromObject(otherObject);
+        if (testBox.intersectsBox(otherBox)) {
+            otherObject.userData.isColliding = true;
+            targetObject.userData.isColliding = true;
+            collisionDetected = true;
+        }
+    }
+    
     return collisionDetected;
 }
 // --- TOUCHMOVE --- //
