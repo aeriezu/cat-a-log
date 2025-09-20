@@ -19,6 +19,7 @@ const interactableObjects = [];
 let selectedPiece = null;
 let touchStartTime = 0;
 const holdThreshold = 800;
+let isSelected = false;
 
 // --- OBJECT DONE BUTTON --- //
 const doneButton = document.createElement('button');
@@ -33,6 +34,7 @@ doneButton.addEventListener('click', () => {
     selectedPiece = null;
     isSelected = false;
     doneButton.style.display = 'none';
+    controls.enabled = true;
 });
 
 // --- GROUND --- //
@@ -98,11 +100,9 @@ loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
 // --- EVENT LISTENERS --- //
 window.addEventListener('pointermove', onPointerMove);
 window.addEventListener('pointerup', () => {
-    selectedPiece = null;
+    //selectedPiece = null;
 });
 
-
-const isSelected = false;
 renderer.domElement.addEventListener('touchstart', (event) => {
     if(isSelected) return;
     if (event.touches.length !== 1) return;
@@ -123,7 +123,7 @@ renderer.domElement.addEventListener('touchstart', (event) => {
         setTimeout(() => {
             if (Date.now() - touchStartTime >= holdThreshold) {
                 selectedPiece = target;
-                isSelected =true;
+                isSelected = true;
                 doneButton.style.display = 'block';
                 controls.enabled = false;
                 console.log('Selected:', selectedPiece.name);
@@ -158,6 +158,8 @@ renderer.domElement.addEventListener('touchend', () => {
 });
 
 function onPointerDown(event) {
+    if (!selectedPiece) return;
+
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
     pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
 
@@ -174,9 +176,7 @@ function onPointerDown(event) {
     }
 }
 
-function onPointerMove(event) {
-    if (!selectedPiece) return;
-
+function onPointerMove(event) {                                            
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
     pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
 
