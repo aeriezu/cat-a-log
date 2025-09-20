@@ -92,6 +92,11 @@ doneButton.addEventListener('click', () => {
 
 renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
 
+renderer.domElement.style.touchAction = 'none';
+renderer.domElement.style.userSelect = 'none';
+renderer.domElement.style.webkitUserSelect = 'none';
+renderer.domElement.style.webkitTouchCallout = 'none';
+
 // --- TOUCH EVENTS: HOLD TO SELECT --- //
 renderer.domElement.addEventListener('touchstart', event => {
     event.preventDefault(); // prevent browser long-press behavior
