@@ -107,11 +107,8 @@ function init() {
     renderer.domElement.addEventListener('touchend', onTouchEnd);
 
     // --- Action Button Listeners ---
-    document.getElementById('rotate-btn').addEventListener('click', () => {
-        if (activeObject) {
-            activeObject.rotation.y += Math.PI / 4;
-        }
-    });
+    
+    // ✨ REMOVED: Old rotate button listener is gone.
 
     document.getElementById('delete-btn').addEventListener('click', () => {
         if (activeObject) {
@@ -142,6 +139,7 @@ function init() {
         }
     });
 
+    // ✨ NEW: Add event listener for the rotate slider
     const rotateSlider = document.getElementById('rotate-slider');
     rotateSlider.addEventListener('input', (event) => {
         if (activeObject) {
@@ -216,11 +214,6 @@ function onSelect() {
         const model = currentObjectToPlace.model.clone();
         model.scale.setScalar(currentObjectToPlace.scale || 1.0);
         
-        const box = new THREE.Box3().setFromObject(model);
-        const verticalOffset = -box.min.y;
-        model.position.setFromMatrixPosition(reticle.matrix);
-        model.position.y += verticalOffset;
-
         model.visible = true;
         scene.add(model);
         interactableObjects.push(model);
@@ -229,6 +222,7 @@ function onSelect() {
         setObjectOpacity(activeObject, 0.7);
         showActionMenu();
 
+        // ✨ NEW: Reset the rotate slider to 0 for the new object
         document.getElementById('rotate-slider').value = 0;
         
         const boxHelper = new THREE.Box3Helper(new THREE.Box3().setFromObject(model), 0xff0000);
@@ -349,6 +343,7 @@ function render(timestamp, frame) {
 
         if (hitTestSource) {
             const hitTestResults = frame.getHitTestResults(hitTestSource);
+            
             if (hitTestResults.length > 0) {
                 const hit = hitTestResults[0];
                 reticle.visible = true;
@@ -357,8 +352,14 @@ function render(timestamp, frame) {
                 reticle.visible = false;
             }
             
-            // This version does not include the logic that caused the reticle to disappear
-            // or the logic for the active object to follow the reticle.
+            reticle.material.visible = !activeObject;
+
+            if (activeObject && reticle.visible) {
+                const box = new THREE.Box3().setFromObject(activeObject);
+                const offset = activeObject.position.y - box.min.y;
+                activeObject.position.setFromMatrixPosition(reticle.matrix);
+                activeObject.position.y += offset;
+            }
         }
     }
 
