@@ -34,5 +34,5 @@
 
 ![alt text](https://github.com/aeriezu/cat-a-log/blob/main/screenshots/Screenshot_20250921_114410_Chrome.png)
 
-![alt text](https://www.youtube.com/watch?v=8ttoN76Kx5s)
+[![alt text]](https://www.youtube.com/watch?v=8ttoN76Kx5s)
 ---
