@@ -107,9 +107,7 @@ function init() {
     document.getElementById('delete-btn').addEventListener('click', () => {
         if (activeObject) {
             scene.remove(activeObject);
-            if (activeObject.userData.boxHelper) {
-                scene.remove(activeObject.userData.boxHelper);
-            }
+            if (activeObject.userData.boxHelper) scene.remove(activeObject.userData.boxHelper);
             const index = interactableObjects.indexOf(activeObject);
             if (index > -1) interactableObjects.splice(index, 1);
             activeObject = null;
@@ -128,22 +126,13 @@ function init() {
     const scaleSlider = document.getElementById('scale-slider');
     scaleSlider.addEventListener('input', (event) => {
         if (activeObject) {
-            const box = new THREE.Box3();
-            box.setFromObject(activeObject);
+            const box = new THREE.Box3().setFromObject(activeObject);
             const oldBottomY = box.min.y;
             const newScale = parseFloat(event.target.value);
             activeObject.scale.setScalar(newScale);
             box.setFromObject(activeObject);
             const newBottomY = box.min.y;
             activeObject.position.y += (oldBottomY - newBottomY);
-        }
-    });
-    
-    const rotateSlider = document.getElementById('rotate-slider');
-    rotateSlider.addEventListener('input', (event) => {
-        if (activeObject) {
-            const newRotation = parseFloat(event.target.value);
-            activeObject.rotation.y = newRotation;
         }
     });
     
@@ -154,6 +143,25 @@ function init() {
     });
 
     renderer.xr.addEventListener('sessionend', cleanupScene);
+
+    // ✨ NEW: Setup Hammer.js for swipe gestures
+    const hammer = new Hammer(renderer.domElement);
+    hammer.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
+
+    // Set rotation amount (15 degrees)
+    const rotationAmount = Math.PI / 12; 
+
+    hammer.on('swipeleft', () => {
+        if (activeObject) {
+            activeObject.rotation.y -= rotationAmount;
+        }
+    });
+
+    hammer.on('swiperight', () => {
+        if (activeObject) {
+            activeObject.rotation.y += rotationAmount;
+        }
+    });
 }
 
 // --- UI & PALETTE LOADING --- //
@@ -216,9 +224,7 @@ function cleanupScene() {
             scene.remove(object.userData.boxHelper);
         }
     });
-    
     interactableObjects.length = 0;
-
     if (activeObject) {
         activeObject = null;
         hideActionMenu();
@@ -248,8 +254,6 @@ function onSelect(event) {
         activeObject = model;
         setObjectOpacity(activeObject, 0.7);
         showActionMenu();
-
-        document.getElementById('rotate-slider').value = 0;
         
         const boxHelper = new THREE.Box3Helper(new THREE.Box3().setFromObject(model), 0xff0000);
         boxHelper.material.transparent = true;
@@ -265,7 +269,6 @@ function onSelect(event) {
                 child.material.polygonOffsetUnits = -1.0;
             }
         });
-
         currentObjectToPlace = null; 
         return;
     }
@@ -276,7 +279,6 @@ function onSelect(event) {
 
     if (timeSinceLastTap < doubleTapDelay) {
         if (activeObject) return;
-
         raycaster.setFromCamera({ x: 0, y: 0 }, camera);
         const intersects = raycaster.intersectObjects(interactableObjects, true);
 
@@ -285,22 +287,13 @@ function onSelect(event) {
             while (tappedObject.parent && !interactableObjects.includes(tappedObject)) {
                 tappedObject = tappedObject.parent;
             }
-
             activeObject = tappedObject;
             setObjectOpacity(activeObject, 0.7);
-            
             document.getElementById('scale-slider').value = activeObject.scale.x;
-            document.getElementById('rotate-slider').value = activeObject.rotation.y;
-            
             showActionMenu();
         }
     }
 }
-
-function onTouchStart(event) {}
-function onTouchMove(event) {}
-function onTouchEnd() {}
-function updateCollisions(targetObject, potentialPosition) {}
 
 // --- RENDER LOOP & UTILS --- //
 function onWindowResize() {
@@ -345,13 +338,10 @@ function render(timestamp, frame) {
             const hit = hitTestResults.length > 0 ? hitTestResults[0] : null;
 
             if (hit) {
-                // The reticle is only visible when we are in placement mode (no active object)
-                reticle.visible = !activeObject;
                 reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
+                reticle.visible = !activeObject;
 
-                // The active object follows the hit test result
                 if (activeObject) {
-                    // This is the stable grounding logic that prevents flickering
                     const box = new THREE.Box3().setFromObject(activeObject);
                     const offset = activeObject.position.y - box.min.y;
                     activeObject.position.setFromMatrixPosition(reticle.matrix);

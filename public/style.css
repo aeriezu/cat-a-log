@@ -13,7 +13,7 @@ body {
     right: 0;
     bottom: 0;
     z-index: -1;
-    /* ✨ FIX: Prevents the browser from hijacking pinch/swipe gestures */
+    /* ✨ FIX: Prevents the browser from hijacking swipe/pinch gestures */
     touch-action: none;
 }
 
@@ -79,9 +79,20 @@ body {
     padding: 0 10px;
 }
 
-#scale-slider, #rotate-slider {
+#scale-slider {
     cursor: pointer;
 }
+
+/* ✨ NEW: Style for the rotation indicator text */
+#rotate-control {
+    color: white;
+    padding: 0 15px;
+    font-size: 16px;
+}
+#rotate-control p {
+    margin: 0;
+}
+
 
 /* Styles for the Exit AR button */
 #exit-ar-btn {
