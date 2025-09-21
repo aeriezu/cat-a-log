@@ -1,1 +1,1 @@
-https://6b1fa636fc18.ngrok-free.app/
+https://ed3b9c0a41c7.ngrok-free.app
