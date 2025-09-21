@@ -6,17 +6,22 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // ------------------- DATA CONFIGURATION ------------------------- //
 // ---------------------------------------------------------------- //
 
+// ** 1. GLOBAL SCALE VARIABLE **
+// Adjust this single value to change the size of all placed objects.
+const GLOBAL_SCALE = 0.6;
+
+// The individual 'scale' properties have been removed from this object.
 const FURNITURE_DATA = {
-    'Object_4':   { displayName: 'Chair', scale: 1.0 },
-    'Object_6':   { displayName: 'Stool', scale: 1.0 },
-    'Object_8':   { displayName: 'Side Table', scale: 0.8 },
-    'Object_16':  { displayName: 'Potted Plant', scale: 1.0 },
-    'Object_20':  { displayName: 'Cabinet', scale: 1.2 },
-    'Object_44':  { displayName: 'Coffee Table', scale: 1.0 },
-    'Object_48':  { displayName: 'Bookshelf', scale: 1.2 },
-    'Object_60':  { displayName: 'Floor Lamp', scale: 1.1 },
-    'Object_62':  { displayName: 'Sofa', scale: 1.2 },
-    'Object_68':  { displayName: 'Dining Table', scale: 1.0 }
+    'Object_4':   { displayName: 'Chair' },
+    'Object_6':   { displayName: 'Stool' },
+    'Object_8':   { displayName: 'Side Table' },
+    'Object_16':  { displayName: 'Potted Plant' },
+    'Object_20':  { displayName: 'Cabinet' },
+    'Object_44':  { displayName: 'Coffee Table' },
+    'Object_48':  { displayName: 'Bookshelf' },
+    'Object_60':  { displayName: 'Floor Lamp' },
+    'Object_62':  { displayName: 'Sofa' },
+    'Object_68':  { displayName: 'Dining Table' }
 };
 
 
@@ -37,7 +42,7 @@ let selectedPiece = null;
 let isDragging = false;
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
-let ignoreNextTap = false; // ** 1. ADD THIS NEW FLAG **
+let ignoreNextTap = false;
 
 
 init();
@@ -113,11 +118,9 @@ function loadFurniturePalette() {
                 const button = document.createElement('button');
                 button.textContent = data.displayName;
                 button.onclick = () => {
-                    currentObjectToPlace = {
-                        model: furniturePalette[modelName],
-                        scale: data.scale
-                    };
-                    // ** 2. SET THE FLAG WHEN A BUTTON IS CLICKED **
+                    // ** 2. SIMPLIFIED SELECTION **
+                    // We only need to select the model itself now.
+                    currentObjectToPlace = furniturePalette[modelName];
                     ignoreNextTap = true;
                     console.log(`Selected "${data.displayName}" for placement.`);
                 };
@@ -134,16 +137,15 @@ function loadFurniturePalette() {
 // ---------------------------------------------------------------- //
 
 function onSelect() {
-    // ** 3. CHECK AND RESET THE FLAG HERE **
-    // This prevents placing an object on the same tap that selected it.
     if (ignoreNextTap) {
         ignoreNextTap = false;
         return;
     }
 
     if (reticle.visible && currentObjectToPlace) {
-        const model = currentObjectToPlace.model.clone();
-        model.scale.setScalar(currentObjectToPlace.scale || 1.0);
+        // ** 3. UPDATED PLACEMENT LOGIC **
+        const model = currentObjectToPlace.clone();
+        model.scale.setScalar(GLOBAL_SCALE); // Use the global scale variable
         model.position.setFromMatrixPosition(reticle.matrix);
         model.visible = true;
         scene.add(model);
@@ -177,7 +179,6 @@ function onTouchStart(event) {
 
     const intersects = raycaster.intersectObjects(interactableObjects, true);
     if (intersects.length > 0) {
-        // Prevent starting a drag if a button was just clicked
         if (ignoreNextTap) {
             ignoreNextTap = false;
             return;
