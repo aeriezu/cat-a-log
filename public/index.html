@@ -1,40 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-g">
-        <title>AR Furniture Placer</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-        <link rel="stylesheet" href="style.css">
-        <script type="importmap">
-        {
-            "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three/examples/jsm/"
-            }
-        }
-        </script>
-    </head>
-    <body>
-        <div id="overlay">
-            <div id="furniture-menu"></div>
-            
-            <div id="action-menu">
-                <div class="slider-control">
-                    <label for="rotate-slider">Rotate</label>
-                    <input type="range" id="rotate-slider" min="0" max="6.28" step="0.01" value="0">
-                </div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AR Furniture Placer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="ar-container"></div>
 
-                <div class="slider-control">
-                    <label for="scale-slider">Scale</label>
-                    <input type="range" id="scale-slider" min="0.05" max="1.4" step="0.01" value="0.05">
-                </div>
-                
-                <button id="delete-btn">Delete</button>
-                <button id="confirm-btn">Place</button>
+    <div id="overlay">
+        <div id="furniture-menu">
+            </div>
+
+        <div id="action-menu" style="display: none;">
+            <div class="control-group">
+                <label for="scale-slider">Scale</label>
+                <input type="range" id="scale-slider" min="0.01" max="0.1" step="0.005" value="0.05">
+            </div>
+            <div class="control-group">
+                <label for="rotate-slider">Rotate</label>
+                <input type="range" id="rotate-slider" min="0" max="6.28" step="0.01" value="0"> </div>
+            <div class="button-group">
+                <button id="confirm-btn" class="action-btn">✓</button>
+                <button id="delete-btn" class="action-btn">🗑️</button>
             </div>
         </div>
-        
-        <div id="ar-container"></div>
-        <script type="module" src="main.js"></script>
-    </body>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+        }
+    }
+    </script>
+    
+    <script type="module" src="app.js"></script>
+</body>
 </html>
