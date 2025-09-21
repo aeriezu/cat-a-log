@@ -33,13 +33,13 @@ body {
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 15px;
+    gap: 10px; /* Adjusted gap for more controls */
     background-color: rgba(0, 0, 0, 0.25);
     padding: 10px;
     border-radius: 30px;
     backdrop-filter: blur(10px);
     pointer-events: auto;
-    align-items: center; /* Vertically align items */
+    align-items: center;
 }
 
 #action-menu {
@@ -56,6 +56,7 @@ body {
     border-radius: 20px;
     cursor: pointer;
     transition: background-color 0.2s;
+    flex-shrink: 0; /* Prevent buttons from shrinking */
 }
 
 #furniture-menu button:hover, #action-menu button:hover {
@@ -67,8 +68,8 @@ body {
     border-color: rgba(20, 150, 255, 1);
 }
 
-/* ✨ NEW: Styles for the scale slider */
-#scale-control {
+/* ✨ MODIFIED: Style for ANY slider control */
+.slider-control {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -76,6 +77,6 @@ body {
     padding: 0 10px;
 }
 
-#scale-slider {
+#scale-slider, #rotate-slider {
     cursor: pointer;
 }

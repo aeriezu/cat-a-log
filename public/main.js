@@ -106,11 +106,9 @@ function init() {
     renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
     renderer.domElement.addEventListener('touchend', onTouchEnd);
 
-    document.getElementById('rotate-btn').addEventListener('click', () => {
-        if (activeObject) {
-            activeObject.rotation.y += Math.PI / 4;
-        }
-    });
+    // --- Action Button Listeners ---
+    
+    // ✨ REMOVED: Old rotate button listener is gone.
 
     document.getElementById('delete-btn').addEventListener('click', () => {
         if (activeObject) {
@@ -138,6 +136,15 @@ function init() {
         if (activeObject) {
             const newScale = parseFloat(event.target.value);
             activeObject.scale.setScalar(newScale);
+        }
+    });
+
+    // ✨ NEW: Add event listener for the rotate slider
+    const rotateSlider = document.getElementById('rotate-slider');
+    rotateSlider.addEventListener('input', (event) => {
+        if (activeObject) {
+            const newRotation = parseFloat(event.target.value);
+            activeObject.rotation.y = newRotation;
         }
     });
 }
@@ -214,6 +221,9 @@ function onSelect() {
         activeObject = model;
         setObjectOpacity(activeObject, 0.7);
         showActionMenu();
+
+        // ✨ NEW: Reset the rotate slider to 0 for the new object
+        document.getElementById('rotate-slider').value = 0;
         
         const boxHelper = new THREE.Box3Helper(new THREE.Box3().setFromObject(model), 0xff0000);
         boxHelper.material.transparent = true;
@@ -346,12 +356,7 @@ function render(timestamp, frame) {
 
             if (activeObject && reticle.visible) {
                 const box = new THREE.Box3().setFromObject(activeObject);
-                
-                // ✨ --- THE FIX --- ✨
-                // This new calculation finds the object's height relative to its own center,
-                // breaking the feedback loop and stopping the flicker.
                 const offset = activeObject.position.y - box.min.y;
-                
                 activeObject.position.setFromMatrixPosition(reticle.matrix);
                 activeObject.position.y += offset;
             }
