@@ -153,6 +153,18 @@ html, body {
     z-index: 2; /* Ensure it's on top of all other UI */
 }
 
+.slider-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    padding: 0 10px;
+}
+
+#scale-slider, #rotate-slider {
+    cursor: pointer;
+}
+
 #exit-ar-btn {
     position: absolute;
     top: 20px;
