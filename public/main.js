@@ -2,12 +2,7 @@ import * as THREE from 'three';
 import { ARButton } from 'three/addons/webxr/ARButton.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-// ---------------------------------------------------------------- //
-// ------------------- DATA CONFIGURATION ------------------------- //
-// ---------------------------------------------------------------- //
-
-// We now define a unique scale for each item to fix size inconsistencies.
-// You can now fine-tune the size of each piece of furniture individually.
+// --- DATA CONFIGURATION --- //
 const FURNITURE_DATA = {
     'Object_22':  { displayName: 'Black Loveseat', scale: 0.05 },
     'Object_24':  { displayName: 'Black Single Sofa', scale: 0.05 },
@@ -44,34 +39,29 @@ const FURNITURE_DATA = {
     'Object_68':  { displayName: 'Dark Counter Sink', scale: 0.05 }
 };
 
-
 // --- CORE THREE.JS & XR COMPONENTS --- //
 let camera, scene, renderer;
 let controller;
 let reticle;
-
 let hitTestSource = null;
 let hitTestSourceRequested = false;
 
-// --- OBJECT & INTERACTION STATE --- //'Object_20':  { displayName: 'Black Couch', scale: 0.05 },
+// --- OBJECT & INTERACTION STATE --- //
 const interactableObjects = [];
 const loader = new GLTFLoader();
 const furniturePalette = {};
 let currentObjectToPlace = null;
-let selectedPiece = null;
+let selectedPiece = null; // Used for dragging
+let activeObject = null; // ✨ NEW: The object currently in "editing mode"
 let isDragging = false;
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let ignoreNextTap = false;
 
-
 init();
 animate();
 
-// ---------------------------------------------------------------- //
-// ----------------------- CORE SETUP ----------------------------- //
-// ---------------------------------------------------------------- //
-
+// --- CORE SETUP --- //
 function init() {
     const arContainer = document.getElementById('ar-container');
     scene = new THREE.Scene();
@@ -115,13 +105,38 @@ function init() {
     renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: false });
     renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
     renderer.domElement.addEventListener('touchend', onTouchEnd);
+
+    // ✨ NEW: Add event listeners for the action buttons
+    document.getElementById('rotate-btn').addEventListener('click', () => {
+        if (activeObject) {
+            activeObject.rotation.y += Math.PI / 4; // Rotate by 45 degrees
+        }
+    });
+
+    document.getElementById('delete-btn').addEventListener('click', () => {
+        if (activeObject) {
+            scene.remove(activeObject);
+            scene.remove(activeObject.userData.boxHelper);
+            // Remove from interactableObjects array
+            const index = interactableObjects.indexOf(activeObject);
+            if (index > -1) {
+                interactableObjects.splice(index, 1);
+            }
+            activeObject = null;
+            hideActionMenu();
+        }
+    });
+
+    document.getElementById('confirm-btn').addEventListener('click', () => {
+        if (activeObject) {
+            setObjectOpacity(activeObject, 1.0); // Make it fully opaque
+            activeObject = null;
+            hideActionMenu();
+        }
+    });
 }
 
-
-// ---------------------------------------------------------------- //
-// ----------------- UI & PALETTE LOADING ------------------------- //
-// ---------------------------------------------------------------- //
-
+// --- UI & PALETTE LOADING --- //
 function loadFurniturePalette() {
     const menuContainer = document.getElementById('furniture-menu');
     
@@ -138,7 +153,7 @@ function loadFurniturePalette() {
                 const button = document.createElement('button');
                 button.textContent = data.displayName;
                 button.onclick = () => {
-                    // We now pass the specific scale for this item
+                    if (activeObject) return; // Don't allow selecting a new item while one is active
                     currentObjectToPlace = {
                         model: furniturePalette[modelName],
                         scale: data.scale
@@ -149,15 +164,32 @@ function loadFurniturePalette() {
                 menuContainer.appendChild(button);
             }
         }
-        console.log("Furniture palette processed!", furniturePalette);
     });
 }
 
+// ✨ NEW: UI Management Functions
+function showActionMenu() {
+    document.getElementById('action-menu').style.display = 'flex';
+    document.getElementById('furniture-menu').style.display = 'none';
+}
 
-// ---------------------------------------------------------------- //
-// ----------------- PLACEMENT & INTERACTION ---------------------- //
-// ---------------------------------------------------------------- //
+function hideActionMenu() {
+    document.getElementById('action-menu').style.display = 'none';
+    document.getElementById('furniture-menu').style.display = 'flex';
+}
 
+// ✨ NEW: Helper function to change object opacity
+function setObjectOpacity(object, opacity) {
+    object.traverse((child) => {
+        if (child.isMesh) {
+            // Ensure the material is transparent
+            child.material.transparent = true;
+            child.material.opacity = opacity;
+        }
+    });
+}
+
+// --- PLACEMENT & INTERACTION --- //
 function onSelect() {
     if (ignoreNextTap) {
         ignoreNextTap = false;
@@ -166,8 +198,6 @@ function onSelect() {
 
     if (reticle.visible && currentObjectToPlace) {
         const model = currentObjectToPlace.model.clone();
-        
-        // Use the specific scale from the selected object
         model.scale.setScalar(currentObjectToPlace.scale || 1.0);
         
         const box = new THREE.Box3().setFromObject(model);
@@ -177,14 +207,14 @@ function onSelect() {
 
         model.visible = true;
         scene.add(model);
+        interactableObjects.push(model);
 
-        model.traverse(child => {
-            if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
-            }
-        });
+        // ✨ NEW: Enter "editing mode" for the new object
+        activeObject = model;
+        setObjectOpacity(activeObject, 0.7); // Make it semi-transparent
+        showActionMenu(); // Show the new buttons
 
+        // Setup collision helper
         const boxHelper = new THREE.Box3Helper(new THREE.Box3().setFromObject(model), 0xff0000);
         boxHelper.material.transparent = true;
         boxHelper.material.opacity = 0;
@@ -192,7 +222,6 @@ function onSelect() {
         model.userData.boxHelper = boxHelper;
         model.userData.isColliding = false;
 
-        interactableObjects.push(model);
         currentObjectToPlace = null; 
     }
 }
@@ -201,10 +230,23 @@ function onTouchStart(event) {
     if (event.touches.length !== 1 || !renderer.xr.isPresenting) return;
     const touch = event.touches[0];
 
+    // If an object is active, it's the only one we should be able to drag
+    if (activeObject) {
+        pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(pointer, camera);
+        const intersects = raycaster.intersectObject(activeObject, true);
+        if (intersects.length > 0) {
+            isDragging = true;
+            selectedPiece = activeObject;
+        }
+        return; // Don't check other objects
+    }
+
+    // Original dragging logic for non-active objects (can be removed if not needed)
     pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
     pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
-
     const intersects = raycaster.intersectObjects(interactableObjects, true);
     if (intersects.length > 0) {
         if (ignoreNextTap) {
@@ -256,9 +298,10 @@ function updateCollisions(targetObject, potentialPosition) {
     const displacement = new THREE.Vector3().subVectors(potentialPosition, targetObject.position);
     testBox.translate(displacement);
 
-    for (const otherObject of interactableObjects) {
-        if (otherObject === targetObject) continue;
+    // Filter out the target object itself from the collision check
+    const otherObjects = interactableObjects.filter(obj => obj !== targetObject);
 
+    for (const otherObject of otherObjects) {
         const otherBox = new THREE.Box3().setFromObject(otherObject);
         if (testBox.intersectsBox(otherBox)) {
             otherObject.userData.isColliding = true;
@@ -271,10 +314,7 @@ function updateCollisions(targetObject, potentialPosition) {
     return collisionDetected;
 }
 
-// ---------------------------------------------------------------- //
-// ------------------- RENDER LOOP & UTILS ------------------------ //
-// ---------------------------------------------------------------- //
-
+// --- RENDER LOOP & UTILS --- //
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -303,7 +343,8 @@ function render(timestamp, frame) {
             hitTestSourceRequested = true;
         }
 
-        if (hitTestSource) {
+        // Only show the reticle if we are in placement mode (no object is active)
+        if (hitTestSource && !activeObject) {
             const hitTestResults = frame.getHitTestResults(hitTestSource);
             if (hitTestResults.length > 0) {
                 const hit = hitTestResults[0];
@@ -312,6 +353,8 @@ function render(timestamp, frame) {
             } else {
                 reticle.visible = false;
             }
+        } else if (reticle) {
+            reticle.visible = false;
         }
     }
 

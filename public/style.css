@@ -12,23 +12,22 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: -1; /* Place it behind everything */
+    z-index: -1;
 }
 
-/* --- NEW OVERLAY STYLES --- */
+/* Main overlay container */
 #overlay {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 2; /* Ensure it's on top of the canvas */
-    /* By default, let touches pass through the overlay container */
+    z-index: 2;
     pointer-events: none;
 }
 
 /* Style the menu to be a neat bar at the bottom */
-#furniture-menu {
+#furniture-menu, #action-menu {
     position: absolute;
     bottom: 20px;
     left: 50%;
@@ -39,12 +38,16 @@ body {
     padding: 10px;
     border-radius: 30px;
     backdrop-filter: blur(10px);
-    /* IMPORTANT: Make the menu and its contents clickable again */
     pointer-events: auto;
 }
 
-/* Style for the furniture buttons */
-#furniture-menu button {
+/* ✨ NEW: Hide the action menu by default */
+#action-menu {
+    display: none;
+}
+
+/* Style for all buttons */
+#furniture-menu button, #action-menu button {
     padding: 12px 20px;
     font-size: 16px;
     background-color: rgba(255, 255, 255, 0.2);
@@ -55,6 +58,12 @@ body {
     transition: background-color 0.2s;
 }
 
-#furniture-menu button:hover {
+#furniture-menu button:hover, #action-menu button:hover {
     background-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Style for the confirm button to make it stand out */
+#confirm-btn {
+    background-color: rgba(20, 150, 255, 0.5);
+    border-color: rgba(20, 150, 255, 1);
 }
