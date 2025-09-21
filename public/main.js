@@ -200,7 +200,6 @@ function onSelect() {
         const box = new THREE.Box3().setFromObject(model);
         const verticalOffset = -box.min.y;
         
-        // ✨ NEW: Store the offset for use in the render loop
         model.userData.verticalOffset = verticalOffset;
         
         model.position.setFromMatrixPosition(reticle.matrix);
@@ -226,7 +225,6 @@ function onSelect() {
 }
 
 function onTouchStart(event) {
-    // ✨ MODIFIED: Disable dragging while an object is in edit mode.
     if (activeObject) return;
 
     if (event.touches.length !== 1 || !renderer.xr.isPresenting) return;
@@ -251,7 +249,6 @@ function onTouchStart(event) {
 }
 
 function onTouchMove(event) {
-    // We only drag pieces that are not the active one
     if (!isDragging || !selectedPiece || selectedPiece === activeObject) return;
     event.preventDefault();
 
@@ -334,20 +331,28 @@ function render(timestamp, frame) {
 
         if (hitTestSource) {
             const hitTestResults = frame.getHitTestResults(hitTestSource);
+            
+            // ✨ --- FIX STARTS HERE --- ✨
+            // 1. We determine if the reticle *should* be logically visible
             if (hitTestResults.length > 0) {
                 const hit = hitTestResults[0];
-                reticle.visible = !activeObject; // Hide reticle when an object is active
+                reticle.visible = true; // The reticle's data is valid
                 reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
             } else {
-                reticle.visible = false;
+                reticle.visible = false; // The reticle's data is invalid
             }
             
-            // ✨ NEW: Make the active object follow the reticle
+            // 2. We control the reticle's VISUAL appearance separately.
+            //    We hide the ring when an object is active to avoid visual clutter.
+            reticle.material.visible = !activeObject;
+
+            // 3. The movement logic now works because `reticle.visible` is correct.
             if (activeObject && reticle.visible) {
                 const offset = activeObject.userData.verticalOffset || 0;
                 activeObject.position.setFromMatrixPosition(reticle.matrix);
                 activeObject.position.y += offset;
             }
+            // ✨ --- FIX ENDS HERE --- ✨
         }
     }
 
