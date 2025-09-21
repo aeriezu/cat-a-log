@@ -9,39 +9,39 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // We now define a unique scale for each item to fix size inconsistencies.
 // You can now fine-tune the size of each piece of furniture individually.
 const FURNITURE_DATA = {
-    'Object_4':   { displayName: 'Item 4', scale: 0.05 },
-    'Object_6':   { displayName: 'Item 6', scale: 0.05 },
-    'Object_8':   { displayName: 'Item 8', scale: 0.05 },
-    'Object_10':  { displayName: 'Item 10', scale: 0.05 },
-    'Object_12':  { displayName: 'Item 12', scale: 0.05 },
-    'Object_14':  { displayName: 'Item 14', scale: 0.05 },
-    'Object_16':  { displayName: 'Item 16', scale: 0.05 },
-    'Object_18':  { displayName: 'Item 18', scale: 0.05 },
-    'Object_20':  { displayName: 'Item 20', scale: 0.05 },
-    'Object_22':  { displayName: 'Item 22', scale: 0.05 },
-    'Object_24':  { displayName: 'Item 24', scale: 0.05 },
-    'Object_26':  { displayName: 'Item 26', scale: 0.05 },
-    'Object_28':  { displayName: 'Item 28', scale: 0.05 },
-    'Object_30':  { displayName: 'Item 30', scale: 0.05 },
-    'Object_32':  { displayName: 'Item 32', scale: 0.05 },
-    'Object_34':  { displayName: 'Item 34', scale: 0.05 },
-    'Object_36':  { displayName: 'Item 36', scale: 0.05 },
-    'Object_38':  { displayName: 'Item 38', scale: 0.05 },
-    'Object_40':  { displayName: 'Item 40', scale: 0.05 },
-    'Object_42':  { displayName: 'Item 42', scale: 0.05 },
-    'Object_44':  { displayName: 'Item 44', scale: 0.05 },
-    'Object_46':  { displayName: 'Item 46', scale: 0.05 },
-    'Object_48':  { displayName: 'Item 48', scale: 0.05 },
-    'Object_50':  { displayName: 'Item 50', scale: 0.05 },
-    'Object_52':  { displayName: 'Item 52', scale: 0.05 },
-    'Object_54':  { displayName: 'Item 54', scale: 0.05 },
-    'Object_56':  { displayName: 'Item 56', scale: 0.05 },
-    'Object_58':  { displayName: 'Item 58', scale: 0.05 },
-    'Object_60':  { displayName: 'Item 60', scale: 0.05 },
-    'Object_62':  { displayName: 'Item 62', scale: 0.05 },
-    'Object_64':  { displayName: 'Item 64', scale: 0.05 },
-    'Object_66':  { displayName: 'Item 66', scale: 0.05 },
-    'Object_68':  { displayName: 'Item 68', scale: 0.05 }
+    'Object_22':  { displayName: 'Black Loveseat', scale: 0.05 },
+    'Object_24':  { displayName: 'Black Single Sofa', scale: 0.05 },
+    'Object_26':  { displayName: 'Beige Single Chair', scale: 0.05 },
+    'Object_28':  { displayName: 'Blue Couch', scale: 0.05 },
+    'Object_30':  { displayName: 'Gray Single Sofa', scale: 0.05 },
+    'Object_32':  { displayName: 'Gray Couch', scale: 0.05 },
+    'Object_34':  { displayName: 'White Leather Couch', scale: 0.05 },
+    'Object_36':  { displayName: 'Beige Single Couch', scale: 0.05 },
+    'Object_38':  { displayName: 'Beige Sofa', scale: 0.05 },
+    'Object_40':  { displayName: 'Blue Twin Bed', scale: 0.05 },
+    'Object_42':  { displayName: 'Black Twin Bed', scale: 0.05 },
+    'Object_44':  { displayName: 'Red Queen Bed', scale: 0.05 },
+    'Object_46':  { displayName: 'Wooden Cabinet', scale: 0.05 },
+    'Object_48':  { displayName: 'Gray Queen Bed', scale: 0.05 },
+    'Object_50':  { displayName: 'TV Stand', scale: 0.05 },
+    'Object_8':   { displayName: 'Safe', scale: 0.05 },
+    'Object_10':  { displayName: 'Blue Queen Bed', scale: 0.05 },
+    'Object_12':  { displayName: 'Flower Dresser', scale: 0.05 },
+    'Object_14':  { displayName: 'White TV Stand', scale: 0.05 },
+    'Object_16':  { displayName: 'Pink Couch', scale: 0.05 },
+    'Object_18':  { displayName: 'Pink Loveseat', scale: 0.05 },
+    'Object_20':  { displayName: 'Black Couch', scale: 0.05 },
+    'Object_52':  { displayName: 'Dark Brown TV Stand', scale: 0.05 },
+    'Object_54':  { displayName: 'Wooden Night Stand', scale: 0.05 },
+    'Object_56':  { displayName: 'Gray Closet', scale: 0.05 },
+    'Object_58':  { displayName: 'Fireplace', scale: 0.05 },
+    'Object_60':  { displayName: 'Three-Leg Lamp', scale: 0.05 },
+    'Object_62':  { displayName: 'Square Lamp', scale: 0.05 },
+    'Object_64':  { displayName: 'Black Sink', scale: 0.05 },
+    'Object_66':  { displayName: 'White Counter Sink', scale: 0.05 },
+    'Object_6':   { displayName: 'Toilet', scale: 0.05 },
+    'Object_4':   { displayName: 'White Fireplace', scale: 0.05 },
+    'Object_68':  { displayName: 'Dark Counter Sink', scale: 0.05 }
 };
 
 
@@ -53,7 +53,7 @@ let reticle;
 let hitTestSource = null;
 let hitTestSourceRequested = false;
 
-// --- OBJECT & INTERACTION STATE --- //
+// --- OBJECT & INTERACTION STATE --- //'Object_20':  { displayName: 'Black Couch', scale: 0.05 },
 const interactableObjects = [];
 const loader = new GLTFLoader();
 const furniturePalette = {};
