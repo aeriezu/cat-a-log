@@ -33,7 +33,7 @@ body {
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 10px; /* Adjusted gap for more controls */
+    gap: 10px;
     background-color: rgba(0, 0, 0, 0.25);
     padding: 10px;
     border-radius: 30px;
@@ -47,8 +47,8 @@ body {
 }
 
 /* Style for all buttons */
-#furniture-menu button, #action-menu button {
-    padding: 12px 20px;
+#furniture-menu button, #action-menu button, #exit-ar-btn {
+    padding: 12px;
     font-size: 16px;
     background-color: rgba(255, 255, 255, 0.2);
     color: white;
@@ -56,10 +56,10 @@ body {
     border-radius: 20px;
     cursor: pointer;
     transition: background-color 0.2s;
-    flex-shrink: 0; /* Prevent buttons from shrinking */
+    flex-shrink: 0;
 }
 
-#furniture-menu button:hover, #action-menu button:hover {
+#furniture-menu button:hover, #action-menu button:hover, #exit-ar-btn:hover {
     background-color: rgba(255, 255, 255, 0.4);
 }
 
@@ -68,7 +68,7 @@ body {
     border-color: rgba(20, 150, 255, 1);
 }
 
-/* ✨ MODIFIED: Style for ANY slider control */
+/* Style for ANY slider control */
 .slider-control {
     display: flex;
     align-items: center;
@@ -79,4 +79,17 @@ body {
 
 #scale-slider, #rotate-slider {
     cursor: pointer;
+}
+
+/* ✨ NEW: Styles for the Exit AR button */
+#exit-ar-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%; /* Make it circular */
+    font-size: 20px;
+    pointer-events: auto;
+    display: none; /* Hidden by default */
 }

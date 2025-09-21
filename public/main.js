@@ -106,7 +106,9 @@ function init() {
     document.getElementById('delete-btn').addEventListener('click', () => {
         if (activeObject) {
             scene.remove(activeObject);
-            scene.remove(activeObject.userData.boxHelper);
+            if (activeObject.userData.boxHelper) {
+                scene.remove(activeObject.userData.boxHelper);
+            }
             const index = interactableObjects.indexOf(activeObject);
             if (index > -1) {
                 interactableObjects.splice(index, 1);
@@ -145,6 +147,23 @@ function init() {
             activeObject.rotation.y = newRotation;
         }
     });
+    
+    const exitBtn = document.getElementById('exit-ar-btn');
+    exitBtn.addEventListener('click', () => {
+        const session = renderer.xr.getSession();
+        if (session) {
+            session.end();
+        }
+    });
+
+    renderer.xr.addEventListener('sessionstart', () => {
+        exitBtn.style.display = 'block';
+    });
+
+    renderer.xr.addEventListener('sessionend', () => {
+        exitBtn.style.display = 'none';
+        cleanupScene();
+    });
 }
 
 // --- UI & PALETTE LOADING --- //
@@ -179,7 +198,7 @@ function loadFurniturePalette() {
     });
 }
 
-// UI Management Functions
+// --- UI & INTERACTION HELPERS --- //
 function showActionMenu() {
     document.getElementById('action-menu').style.display = 'flex';
     document.getElementById('furniture-menu').style.display = 'none';
@@ -190,7 +209,6 @@ function hideActionMenu() {
     document.getElementById('furniture-menu').style.display = 'flex';
 }
 
-// Helper function to change object opacity
 function setObjectOpacity(object, opacity) {
     object.traverse((child) => {
         if (child.isMesh) {
@@ -198,6 +216,23 @@ function setObjectOpacity(object, opacity) {
             child.material.opacity = opacity;
         }
     });
+}
+
+function cleanupScene() {
+    const objectsToRemove = [...interactableObjects];
+    objectsToRemove.forEach(object => {
+        scene.remove(object);
+        if (object.userData.boxHelper) {
+            scene.remove(object.userData.boxHelper);
+        }
+    });
+    
+    interactableObjects.length = 0;
+
+    if (activeObject) {
+        activeObject = null;
+        hideActionMenu();
+    }
 }
 
 // --- PLACEMENT & INTERACTION --- //
@@ -233,25 +268,18 @@ function onSelect(event) {
         model.userData.boxHelper = boxHelper;
         model.userData.isColliding = false;
 
-        // ✨ --- NEW: Z-Fighting Fix --- ✨
-        // We traverse the newly placed model and apply a polygon offset
-        // to all its materials. This prevents flickering lines.
         model.traverse((child) => {
-            if (child.isMesh) {
-                if (child.material) {
-                    child.material.polygonOffset = true;
-                    child.material.polygonOffsetFactor = -1.0;
-                    child.material.polygonOffsetUnits = -1.0;
-                }
+            if (child.isMesh && child.material) {
+                child.material.polygonOffset = true;
+                child.material.polygonOffsetFactor = -1.0;
+                child.material.polygonOffsetUnits = -1.0;
             }
         });
-        // ✨ --- End of Fix --- ✨
 
         currentObjectToPlace = null; 
         return;
     }
 
-    // --- Double-tap Logic ---
     const currentTime = new Date().getTime();
     const timeSinceLastTap = currentTime - lastTapTime;
     lastTapTime = currentTime;
@@ -279,7 +307,6 @@ function onSelect(event) {
     }
 }
 
-// ✨ These functions are intentionally left empty in this interaction model.
 function onTouchStart(event) {}
 function onTouchMove(event) {}
 function onTouchEnd() {}
