@@ -51,12 +51,11 @@ const interactableObjects = [];
 const loader = new GLTFLoader();
 const furniturePalette = {};
 let currentObjectToPlace = null;
-let selectedPiece = null;
 let activeObject = null;
-let isDragging = false;
 const raycaster = new THREE.Raycaster();
-const pointer = new THREE.Vector2();
 let ignoreNextTap = false;
+
+// ✨ NEW: Re-introducing variables for double-tap detection
 let lastTapTime = 0;
 const doubleTapDelay = 300; // milliseconds
 
@@ -104,9 +103,6 @@ function init() {
     scene.add(reticle);
 
     window.addEventListener('resize', onWindowResize);
-    renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: false });
-    renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
-    renderer.domElement.addEventListener('touchend', onTouchEnd);
 
     // --- Action Button Listeners ---
     document.getElementById('delete-btn').addEventListener('click', () => {
@@ -178,7 +174,6 @@ function loadFurniturePalette() {
                     };
                     scaleSlider.value = data.scale;
                     ignoreNextTap = true;
-                    console.log(`Selected "${data.displayName}" for placement.`);
                 };
                 menuContainer.appendChild(button);
             }
@@ -208,12 +203,14 @@ function setObjectOpacity(object, opacity) {
 }
 
 // --- PLACEMENT & INTERACTION --- //
-function onSelect() {
+// ✨ MODIFIED: onSelect now handles placing new objects AND robust double-tap selection.
+function onSelect(event) {
     if (ignoreNextTap) {
         ignoreNextTap = false;
         return;
     }
 
+    // --- Case 1: Placing a NEW object ---
     if (reticle.visible && currentObjectToPlace) {
         const model = currentObjectToPlace.model.clone();
         model.scale.setScalar(currentObjectToPlace.scale || 1.0);
@@ -241,100 +238,45 @@ function onSelect() {
         model.userData.isColliding = false;
 
         currentObjectToPlace = null; 
+        return;
     }
-}
 
-function onTouchStart(event) {
-    if (activeObject || event.touches.length !== 1 || !renderer.xr.isPresenting) return;
-
-    const touch = event.touches[0];
-
-    // ✨ --- MODIFIED: More robust tap position calculation --- ✨
-    // This accounts for any potential offsets or borders on the canvas
-    const rect = renderer.domElement.getBoundingClientRect();
-    pointer.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
-    pointer.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
-    // ✨ --- End of Modification --- ✨
-
-    raycaster.setFromCamera(pointer, camera);
-    const intersects = raycaster.intersectObjects(interactableObjects, true);
-
-    if (intersects.length === 0) return;
-
+    // --- Case 2: Double-tapping an EXISTING object ---
     const currentTime = new Date().getTime();
     const timeSinceLastTap = currentTime - lastTapTime;
     lastTapTime = currentTime;
-    console.log(`Tap detected on an object. Time since last: ${timeSinceLastTap}ms`);
-
-    let tappedObject = intersects[0].object;
-    while (tappedObject.parent && !interactableObjects.includes(tappedObject)) {
-        tappedObject = tappedObject.parent;
-    }
 
     if (timeSinceLastTap < doubleTapDelay) {
-        console.log(`Double-tap registered on: ${tappedObject.name}`);
-        activeObject = tappedObject;
-        setObjectOpacity(activeObject, 0.7);
-        document.getElementById('scale-slider').value = activeObject.scale.x;
-        document.getElementById('rotate-slider').value = activeObject.rotation.y;
-        showActionMenu();
-    } else {
-        isDragging = true;
-        selectedPiece = tappedObject;
-    }
-}
+        // This is a double tap, try to select an object.
+        if (activeObject) return; // Don't do anything if an object is already active
 
-function onTouchMove(event) {
-    if (!isDragging || !selectedPiece || selectedPiece === activeObject) return;
-    event.preventDefault();
+        // Raycast from the center of the screen
+        raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+        const intersects = raycaster.intersectObjects(interactableObjects, true);
 
-    const touch = event.touches[0];
-    pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(pointer, camera);
+        if (intersects.length > 0) {
+            let tappedObject = intersects[0].object;
+            while (tappedObject.parent && !interactableObjects.includes(tappedObject)) {
+                tappedObject = tappedObject.parent;
+            }
 
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -selectedPiece.position.y);
-    const intersectionPoint = new THREE.Vector3();
-
-    if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-        const potentialPosition = intersectionPoint;
-        if (!updateCollisions(selectedPiece, potentialPosition)) {
-            selectedPiece.position.copy(potentialPosition);
+            activeObject = tappedObject;
+            setObjectOpacity(activeObject, 0.7);
+            
+            // Update sliders to match the object's current state
+            document.getElementById('scale-slider').value = activeObject.scale.x;
+            document.getElementById('rotate-slider').value = activeObject.rotation.y;
+            
+            showActionMenu();
         }
     }
 }
 
-function onTouchEnd() {
-    isDragging = false;
-    if (selectedPiece) {
-        selectedPiece.userData.isColliding = false;
-        interactableObjects.forEach(obj => {
-            if (obj !== selectedPiece) obj.userData.isColliding = false;
-        });
-    }
-    selectedPiece = null;
-}
-
-function updateCollisions(targetObject, potentialPosition) {
-    let collisionDetected = false;
-    const testBox = new THREE.Box3().setFromObject(targetObject);
-    const displacement = new THREE.Vector3().subVectors(potentialPosition, targetObject.position);
-    testBox.translate(displacement);
-
-    const otherObjects = interactableObjects.filter(obj => obj !== targetObject);
-
-    for (const otherObject of otherObjects) {
-        const otherBox = new THREE.Box3().setFromObject(otherObject);
-        if (testBox.intersectsBox(otherBox)) {
-            otherObject.userData.isColliding = true;
-            collisionDetected = true;
-        } else {
-            otherObject.userData.isColliding = false;
-        }
-    }
-    targetObject.userData.isColliding = collisionDetected;
-    return collisionDetected;
-}
+// ✨ These functions are no longer needed for primary interaction.
+function onTouchStart(event) {}
+function onTouchMove(event) {}
+function onTouchEnd() {}
+function updateCollisions(targetObject, potentialPosition) {} // Kept for future potential use
 
 // --- RENDER LOOP & UTILS --- //
 function onWindowResize() {
@@ -367,22 +309,20 @@ function render(timestamp, frame) {
 
         if (hitTestSource) {
             const hitTestResults = frame.getHitTestResults(hitTestSource);
-            
-            if (hitTestResults.length > 0) {
-                const hit = hitTestResults[0];
-                reticle.visible = true;
+            const hit = hitTestResults.length > 0 ? hitTestResults[0] : null;
+
+            if (hit) {
                 reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
+                reticle.visible = !activeObject;
+
+                if (activeObject) {
+                    const box = new THREE.Box3().setFromObject(activeObject);
+                    const offset = activeObject.position.y - box.min.y;
+                    activeObject.position.setFromMatrixPosition(reticle.matrix);
+                    activeObject.position.y += offset;
+                }
             } else {
                 reticle.visible = false;
-            }
-            
-            reticle.material.visible = !activeObject;
-
-            if (activeObject && reticle.visible) {
-                const box = new THREE.Box3().setFromObject(activeObject);
-                const offset = activeObject.position.y - box.min.y;
-                activeObject.position.setFromMatrixPosition(reticle.matrix);
-                activeObject.position.y += offset;
             }
         }
     }
@@ -391,7 +331,8 @@ function render(timestamp, frame) {
         const helper = object.userData.boxHelper;
         if (helper) {
             helper.box.setFromObject(object);
-            const targetOpacity = object.userData.isColliding ? 0.75 : 0.0;
+            // Collision box is always invisible in this version, but logic is here if needed.
+            const targetOpacity = 0.0;
             helper.material.opacity += (targetOpacity - helper.material.opacity) * 0.1;
         }
     });
