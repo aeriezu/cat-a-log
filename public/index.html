@@ -2,33 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR Furniture Placer</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Furniture Thumbnail Generator</title>
+    <style>
+        body { 
+            font-family: sans-serif; 
+            text-align: center; 
+            padding: 20px; 
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        p {
+            margin-bottom: 30px;
+        }
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        #generateBtn { 
+            font-size: 1.2em; 
+            padding: 10px 20px; 
+            cursor: pointer; 
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        #generateBtn:hover:not(:disabled) {
+            background-color: #218838;
+        }
+        #generateBtn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #renderCanvas { 
+            display: none; /* Hide the canvas element */
+        } 
+    </style>
 </head>
 <body>
-    <div id="ar-container"></div>
-
-    <div id="overlay">
-        <div id="furniture-menu">
-            </div>
-
-        <div id="action-menu" style="display: none;">
-            <div class="control-group">
-                <label for="scale-slider">Scale</label>
-                <input type="range" id="scale-slider" min="0.01" max="0.1" step="0.005" value="0.05">
-            </div>
-            <div class="control-group">
-                <label for="rotate-slider">Rotate</label>
-                <input type="range" id="rotate-slider" min="0" max="6.28" step="0.01" value="0"> </div>
-            <div class="button-group">
-                <button id="confirm-btn" class="action-btn">✓</button>
-                <button id="delete-btn" class="action-btn">🗑️</button>
-            </div>
-        </div>
-    </div>
-
-    <script type="importmap">
+    <h1>Furniture Thumbnail Generator</h1>
+    <p>
+        Click the button below to load your `low_poly_furnitures_full_bundle.glb` file,<br>
+        render each furniture model, and download individual PNG images.
+    </p>
+    <button id="generateBtn">Generate and Download Thumbnails</button>
+    <div id="status"></div>
+    <canvas id="renderCanvas"></canvas> <script type="importmap">
     {
         "imports": {
             "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
@@ -36,7 +61,144 @@
         }
     }
     </script>
-    
-    <script type="module" src="app.js"></script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // --- DATA CONFIGURATION --- //
+        // ✨ NEW: Added an optional 'rotation' property for models that need to be turned.
+        // The values are [X, Y, Z] angles in radians.
+        // Common values: Math.PI / 2 (90°), Math.PI (180°), -Math.PI / 2 (-90°)
+        const FURNITURE_DATA = {
+            'Object_22':  { displayName: 'Black Loveseat', rotation: [0, Math.PI / 6, 0] },
+            'Object_24':  { displayName: 'Black Single Sofa', rotation: [0, Math.PI / 6, 0] },
+            'Object_26':  { displayName: 'Beige Single Chair', rotation: [0, Math.PI / 6, 0] },
+            'Object_28':  { displayName: 'Blue Couch', rotation: [0, Math.PI / 6, 0] },
+            'Object_30':  { displayName: 'Gray Single Sofa', rotation: [0, Math.PI / 6, 0] },
+            'Object_32':  { displayName: 'Gray Couch', rotation: [0, Math.PI / 6, 0] },
+            'Object_34':  { displayName: 'White Leather Couch', rotation: [0, Math.PI / 6, 0] },
+            'Object_36':  { displayName: 'Beige Single Couch', rotation: [0, Math.PI / 6, 0] },
+            'Object_38':  { displayName: 'Beige Sofa', rotation: [0, Math.PI / 6, 0] },
+            'Object_40':  { displayName: 'Blue Twin Bed', rotation: [0, Math.PI / 2, 0] }, // Turned 90 degrees
+            'Object_42':  { displayName: 'Black Twin Bed', rotation: [0, Math.PI / 2, 0] },
+            'Object_44':  { displayName: 'Red Queen Bed', rotation: [0, Math.PI / 2, 0] },
+            'Object_46':  { displayName: 'Wooden Cabinet' },
+            'Object_48':  { displayName: 'Gray Queen Bed', rotation: [0, Math.PI / 2, 0] },
+            'Object_50':  { displayName: 'TV Stand' },
+            'Object_8':   { displayName: 'Safe' },
+            'Object_10':  { displayName: 'Blue Queen Bed', rotation: [0, Math.PI / 2, 0] },
+            'Object_12':  { displayName: 'Flower Dresser' },
+            'Object_14':  { displayName: 'White TV Stand' },
+            'Object_16':  { displayName: 'Pink Couch', rotation: [0, Math.PI / 6, 0] },
+            'Object_18':  { displayName: 'Pink Loveseat', rotation: [0, Math.PI / 6, 0] },
+            'Object_20':  { displayName: 'Black Couch', rotation: [0, Math.PI / 6, 0] },
+            'Object_52':  { displayName: 'Dark Brown TV Stand' },
+            'Object_54':  { displayName: 'Wooden Night Stand' },
+            'Object_56':  { displayName: 'Gray Closet' },
+            'Object_58':  { displayName: 'Fireplace' },
+            'Object_60':  { displayName: 'Three-Leg Lamp' },
+            'Object_62':  { displayName: 'Square Lamp' },
+            'Object_64':  { displayName: 'Black Sink' },
+            'Object_66':  { displayName: 'White Counter Sink' },
+            'Object_6':   { displayName: 'Toilet' },
+            'Object_4':   { displayName: 'White Fireplace' },
+            'Object_68':  { displayName: 'Dark Counter Sink' }
+        };
+        
+        // --- Thumbnail Generation Logic --- //
+        const generateBtn = document.getElementById('generateBtn');
+        const statusDiv = document.getElementById('status');
+        generateBtn.addEventListener('click', generateThumbnails);
+
+        async function generateThumbnails() {
+            generateBtn.textContent = 'Generating... Please wait.';
+            generateBtn.disabled = true;
+            statusDiv.textContent = 'Initializing...';
+
+            const canvas = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f0f0);
+            const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+            const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+            renderer.setSize(256, 256);
+            
+            scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2));
+            const light = new THREE.DirectionalLight(0xffffff, 2);
+            light.position.set(2, 2, 2);
+            scene.add(light);
+            scene.add(new THREE.AmbientLight(0x404040, 1));
+
+            const loader = new GLTFLoader();
+            let gltf;
+            try {
+                statusDiv.textContent = 'Loading GLB model...';
+                gltf = await loader.loadAsync('low_poly_furnitures_full_bundle.glb');
+                statusDiv.textContent = 'GLB model loaded. Starting thumbnail generation...';
+            } catch (error) {
+                statusDiv.textContent = `Error loading GLB: ${error.message}.`;
+                generateBtn.textContent = 'Failed to Generate';
+                return;
+            }
+
+            const furniturePieces = {};
+            gltf.scene.traverse(child => {
+                if (FURNITURE_DATA[child.name]) {
+                    furniturePieces[child.name] = child;
+                }
+            });
+
+            let count = 0;
+            const totalModels = Object.keys(FURNITURE_DATA).length;
+
+            for (const modelName in FURNITURE_DATA) {
+                const model = furniturePieces[modelName];
+                if (!model) continue;
+
+                const data = FURNITURE_DATA[modelName];
+                statusDiv.textContent = `Generating: ${data.displayName} (${++count}/${totalModels})`;
+                const modelClone = model.clone();
+
+                // ✨ NEW: Check for and apply custom rotation BEFORE calculating the bounding box.
+                if (data.rotation) {
+                    modelClone.rotation.set(data.rotation[0], data.rotation[1], data.rotation[2]);
+                } else {
+                    modelClone.rotation.set(0, 0, 0); // Reset if no custom rotation
+                }
+                
+                scene.add(modelClone);
+
+                const box = new THREE.Box3().setFromObject(modelClone);
+                const size = box.getSize(new THREE.Vector3());
+                const center = box.getCenter(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                
+                // ✨ UPDATED: Increased fitOffset from 1.2 to 1.8 to give more padding.
+                const fitOffset = 1.8;
+                const fovRad = camera.fov * (Math.PI / 180);
+                let cameraZ = Math.abs(maxDim / (2 * Math.tan(fovRad / 2))) * fitOffset;
+
+                camera.position.set(center.x + cameraZ * 0.5, center.y + cameraZ * 0.5, center.z + cameraZ);
+                camera.lookAt(center);
+
+                renderer.render(scene, camera);
+                
+                const imageURL = renderer.domElement.toDataURL('image/png');
+                const link = document.createElement('a');
+                const fileName = data.displayName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '') + '.png';
+                link.download = fileName;
+                link.href = imageURL;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                scene.remove(modelClone);
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            
+            statusDiv.textContent = `All ${totalModels} thumbnails have been downloaded.`;
+            generateBtn.textContent = 'Finished!';
+            generateBtn.disabled = false;
+        }
+    </script>
 </body>
 </html>
