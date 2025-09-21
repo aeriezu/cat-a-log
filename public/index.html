@@ -66,8 +66,7 @@
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        // --- DATA CONFIGURATION --- //
-        // ✨ UPDATED: Changed rotation to negative to turn objects to the right (clockwise).
+        // Your FURNITURE_DATA object remains the same
         const FURNITURE_DATA = {
             'Object_22':  { displayName: 'Black Loveseat', rotation: [0, -Math.PI / 6, 0] },
             'Object_24':  { displayName: 'Black Single Sofa', rotation: [0, -Math.PI / 5, 0] },
@@ -75,26 +74,26 @@
             'Object_28':  { displayName: 'Blue Couch', rotation: [0, -Math.PI / 5, 0] },
             'Object_30':  { displayName: 'Gray Single Sofa', rotation: [0, Math.PI / 3, 0] },
             'Object_32':  { displayName: 'Gray Couch', rotation: [0, Math.PI / 3, 0] },
-            'Object_34':  { displayName: 'White Leather Couch', rotation: [0, -Math.PI / 4, 0] },
+            'Object_34':  { displayName: 'White Leather Couch', rotation: [0, -Math.PI / 5, 0] },
             'Object_36':  { displayName: 'Beige Single Couch', rotation: [0, Math.PI / 3, 0] },
             'Object_38':  { displayName: 'Beige Sofa', rotation: [0, Math.PI / 3, 0] },
             'Object_40':  { displayName: 'Blue Twin Bed', rotation: [0, Math.PI / 3, 0] },
-            'Object_42':  { displayName: 'Black Twin Bed', rotation: [0, Math.PI / 2, 0] },
-            'Object_44':  { displayName: 'Red Queen Bed', rotation: [0, Math.PI / 2, 0] },
-            'Object_46':  { displayName: 'Wooden Cabinet', rotation: [0, -Math.PI / 5, 0] },
+            'Object_42':  { displayName: 'Black Twin Bed', rotation: [0, Math.PI / 3, 0] },
+            'Object_44':  { displayName: 'Red Queen Bed', rotation: [0, Math.PI / 3, 0] },
+            'Object_46':  { displayName: 'Wooden Cabinet', rotation: [0, -Math.PI / 6, 0] },
             'Object_48':  { displayName: 'Gray Queen Bed', rotation: [0, Math.PI / 3, 0] },
             'Object_50':  { displayName: 'TV Stand', rotation: [0, -Math.PI / 5, 0] },
             'Object_8':   { displayName: 'Big Toilet', rotation: [0, -Math.PI / 6, 0] },            
             'Object_10':  { displayName: 'Blue Queen Bed', rotation: [0, Math.PI / 3, 0] },
             'Object_12':  { displayName: 'Flower Dresser', rotation: [0, -Math.PI / 5, 0] },
             'Object_14':  { displayName: 'White TV Stand', rotation: [0, -Math.PI / 5, 0] },
-            'Object_16':  { displayName: 'Pink Couch', rotation: [0, -Math.PI / 4, 0] },
+            'Object_16':  { displayName: 'Pink Couch', rotation: [0, -Math.PI / 5, 0] },
             'Object_18':  { displayName: 'Pink Loveseat', rotation: [0, -Math.PI / 4, 0] },
             'Object_20':  { displayName: 'Black Couch', rotation: [0, -Math.PI / 6, 0] },
             'Object_52':  { displayName: 'Dark Brown TV Stand', rotation: [0, -Math.PI / 5, 0] },
             'Object_54':  { displayName: 'Wooden Night Stand', rotation: [0, -Math.PI / 6, 0]  },
             'Object_56':  { displayName: 'Gray Closet', rotation: [0, -Math.PI / 6, 0] },
-            'Object_58':  { displayName: 'Fireplace', rotation: [0, -Math.PI / 6, 0] },
+            'Object_58':  { displayName: 'Big Fireplace', rotation: [0, -Math.PI / 6, 0] },
             'Object_60':  { displayName: 'Three-Leg Lamp' },
             'Object_62':  { displayName: 'Square Lamp', rotation: [0, -Math.PI / 6, 0] },
             'Object_64':  { displayName: 'Black Sink', rotation: [0, -Math.PI / 6, 0] },
@@ -121,7 +120,6 @@
             const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
             
-            // ✨ UPDATED: Increased renderer size for higher quality images.
             const imageSize = 512;
             renderer.setSize(imageSize, imageSize);
             
@@ -155,7 +153,12 @@
 
             for (const modelName in FURNITURE_DATA) {
                 const model = furniturePieces[modelName];
-                if (!model) continue;
+
+                // ✨ FIX #1: Add a warning to the console if a model is not found.
+                if (!model) {
+                    console.warn(`SKIPPING: Model with key '${modelName}' was not found in the GLB file.`);
+                    continue; // This skips the current item and moves to the next.
+                }
 
                 const data = FURNITURE_DATA[modelName];
                 statusDiv.textContent = `Generating: ${data.displayName} (${++count}/${totalModels})`;
@@ -174,7 +177,6 @@
                 const center = box.getCenter(new THREE.Vector3());
                 const maxDim = Math.max(size.x, size.y, size.z);
                 
-                // ✨ UPDATED: Decreased fitOffset to zoom in slightly.
                 const fitOffset = 1.8;
                 const fovRad = camera.fov * (Math.PI / 180);
                 let cameraZ = Math.abs(maxDim / (2 * Math.tan(fovRad / 2))) * fitOffset;
@@ -194,10 +196,12 @@
                 document.body.removeChild(link);
 
                 scene.remove(modelClone);
-                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                // ✨ FIX #2: Increase the delay to 200ms to avoid browser blocking.
+                await new Promise(resolve => setTimeout(resolve, 200));
             }
             
-            statusDiv.textContent = `All ${totalModels} thumbnails have been downloaded.`;
+            statusDiv.textContent = `All thumbnails have been generated.`;
             generateBtn.textContent = 'Finished!';
             generateBtn.disabled = false;
         }
