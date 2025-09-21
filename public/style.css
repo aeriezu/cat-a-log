@@ -83,7 +83,7 @@ body {
     cursor: pointer;
 }
 
-/* ✨ NEW: Style for the rotation indicator text */
+/* Style for the rotation indicator text */
 #rotate-control {
     color: white;
     padding: 0 15px;
