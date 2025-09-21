@@ -26,11 +26,14 @@ html, body {
 }
 
 body {
+  margin: 0;
+  min-height: 100vh;
+  min-width: 100vw;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
-  width: 100vw;
-  min-height: 100vh;
+  overflow: hidden; /* This is crucial to prevent scrolling */
 }
 
 * {
@@ -42,8 +45,8 @@ body {
 /* Home Screen */
 .home-scree-d594dffc897c {
   position: relative;
-  width: 1194px;
-  height: 834px;
+  width: 100vw;
+  height: 100vh;
   background: #97debbFF;
   border-radius: 0px 0px 0px 0px;
   overflow: hidden;
@@ -347,7 +350,7 @@ body {
 .breate-boa-d5c65cfdb17c {
   position: absolute;
   left: 0px;
-  top: 0px;
+  bottom: 115px;
   width: 206.44px;
   height: 62px;
 }
@@ -414,7 +417,7 @@ body {
 .start-desi-d594dffc897e {
   position: absolute;
   left: 223px;
-  top: 2px;
+  bottom: 115px;
   width: 206.44px;
   height: 62.02px;
 }
