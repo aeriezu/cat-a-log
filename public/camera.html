@@ -1,60 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Furniture</title>
-
-    <script type="importmap">
-    {
-        "imports": {
+    <head>
+        <meta charset="utf-8">
+        <title>AR Furniture Placer</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <link rel="stylesheet" href="style.css">
+        <script type="importmap">
+        {
+            "imports": {
             "three": "https://cdn.jsdelivr.net/npm/three/build/three.module.js",
             "three/addons/": "https://cdn.jsdelivr.net/npm/three/examples/jsm/"
+            }
         }
-    }
-    </script>
-    
-    <link rel="stylesheet" href="camera.css">
-</head>
-<body>
-    <div id="ar-container"></div>
-
-    <div id="overlay">
-
-        <button id="exit-ar-btn" style="display: none;">X</button>
-        
-        <div class="category-selector">
-            <button class="category-button active" data-category="couches">🛋️</button>
-            <button class="category-button" data-category="chairs">🪑</button>
-            <button class="category-button" data-category="beds">🛌️</button>
-            <button class="category-button" data-category="tables">🍽️</button>
-            <button class="category-button" data-category="storage">📦</button>
-            <button class="category-button" data-category="decor">💡</button>
-            <button class="category-button" data-category="bathroom">🚽</button>
-        </div>
-
-        <div id="item-track-container">
-            <div id="item-track">
+        </script>
+    </head>
+    <body>
+        <div id="overlay">
+            <button id="exit-ar-btn">X</button>
+            <div id="furniture-menu"></div>
+            
+            <div id="action-menu">
+                <div class="slider-control">
+                    <label for="rotate-slider">Rotate</label>
+                    <input type="range" id="rotate-slider" min="0" max="6.28" step="0.01" value="0">
                 </div>
-        </div>
 
-        <div id="action-menu" style="display: none;">
-            <button id="delete-btn">Delete</button>
-
-            <div class="slider-control">
-                <label for="rotate-slider">Rotate</label>
-                <input type="range" id="rotate-slider" min="0" max="6.28" step="0.01" value="0">
+                <div class="slider-control">
+                    <label for="scale-slider">Scale</label>
+                    <input type="range" id="scale-slider" min="0.005" max="2.0" step="0.005" value="0.05">
+                </div>
+                
+                <button id="delete-btn">Delete</button>
+                <button id="confirm-btn">Place</button>
             </div>
-
-            <div class="slider-control">
-                <label for="scale-slider">Scale</label>
-                <input type="range" id="scale-slider" min="0.01" max="1.75" step="0.01" value="0.05">
-            </div>
-            <button id="confirm-btn">Confirm</button>
         </div>
-
-    </div>
-
-    <script type="module" src="camera.js"></script>
-</body>
+        
+        <div id="ar-container"></div>
+        <script type="module" src="main.js"></script>
+    </body>
 </html>
