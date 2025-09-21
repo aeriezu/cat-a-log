@@ -176,3 +176,7 @@ html, body {
     pointer-events: auto;
     display: none; /* Hidden by default */
 }
+
+#ARButton {
+    display: none !important; /* Hide the button */
+}
