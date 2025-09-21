@@ -3,8 +3,6 @@ import { ARButton } from 'three/addons/webxr/ARButton.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // --- DATA --- //
-// --- UPDATED CATEGORIZED_FURNITURE in main.js --- //
-
 const CATEGORIZED_FURNITURE = {
     couches: [
         { modelName: 'Object_22', displayName: 'Black Loveseat', scale: 0.05, img: './images/Black_Loveseat.png' },
@@ -112,7 +110,7 @@ function init() {
 
     window.addEventListener('resize', onWindowResize);
 
-    // Action Button Listeners
+    // --- Action Button Listeners ---
     document.getElementById('delete-btn').addEventListener('click', () => {
         if (activeObject) {
             scene.remove(activeObject);
@@ -122,35 +120,62 @@ function init() {
             hideActionMenu();
         }
     });
-    document.getElementById('confirm-btn').addEventListener('click', () => { if (activeObject) { activeObject = null; hideActionMenu(); } });
-    document.getElementById('scale-slider').addEventListener('input', (e) => { if (activeObject) activeObject.scale.setScalar(parseFloat(e.target.value)); });
-    document.getElementById('rotate-slider').addEventListener('input', (e) => { if (activeObject) activeObject.rotation.y = parseFloat(e.target.value); });
+
+    document.getElementById('confirm-btn').addEventListener('click', () => {
+        if (activeObject) {
+            activeObject = null;
+            hideActionMenu();
+        }
+    });
+
+    document.getElementById('scale-slider').addEventListener('input', (event) => {
+        if (activeObject) {
+            // Re-apply the stable grounding logic when scaling
+            const box = new THREE.Box3().setFromObject(activeObject);
+            const oldBottomY = box.min.y;
+            activeObject.scale.setScalar(parseFloat(event.target.value));
+            box.setFromObject(activeObject);
+            const newBottomY = box.min.y;
+            activeObject.position.y += (oldBottomY - newBottomY);
+        }
+    });
+
+    // ✨ REMOVED: The rotate slider listener is no longer needed.
 
     exitBtn = document.getElementById('exit-ar-btn');
     exitBtn.addEventListener('click', () => {
         const session = renderer.xr.getSession();
-        if (session) {
-            session.end();
-        }
+        if (session) session.end();
     });
 
-    function cleanupScene() {
-        interactableObjects.length = 0; // Empties the array
-    }
-
-    // The listener in the init() function
     renderer.xr.addEventListener('sessionend', cleanupScene);
     
     setupARandUI();
+
+    // ✨ NEW: Setup Hammer.js for swipe gestures
+    const hammer = new Hammer(renderer.domElement);
+    hammer.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
+
+    const rotationAmount = Math.PI / 12; // 15 degrees
+
+    hammer.on('swipeleft', () => {
+        if (activeObject) {
+            // Per your request: swipe left rotates clockwise
+            activeObject.rotation.y += rotationAmount;
+        }
+    });
+
+    hammer.on('swiperight', () => {
+        if (activeObject) {
+            // Per your request: swipe right rotates counter-clockwise
+            activeObject.rotation.y -= rotationAmount;
+        }
+    });
 }
 
 function setupARandUI() {
     const loader = new GLTFLoader();
-    // NOTE: This is a large file and may take a moment to load.
-    // To use your furniture model, you'll need to host it online (e.g., on GitHub) and replace the URL above.
-
     loader.load('low_poly_furnitures_full_bundle.glb', (gltf) => {
-        // Populate the palette with all 3D models from the file
         gltf.scene.traverse((child) => {
             for (const category in CATEGORIZED_FURNITURE) {
                 if (CATEGORIZED_FURNITURE[category].some(item => item.modelName === child.name)) {
@@ -160,7 +185,6 @@ function setupARandUI() {
             }
         });
 
-        // Set up event listeners for the category buttons
         const categoryButtons = document.querySelectorAll('.category-button');
         categoryButtons.forEach(button => {
             button.addEventListener('click', () => {
@@ -169,36 +193,27 @@ function setupARandUI() {
                 populateItemSelector(button.dataset.category);
             });
         });
-
-        populateItemSelector('couches'); // Populate with default category
+        populateItemSelector('couches');
     });
 }
-
-// --- REVISED populateItemSelector function in main.js --- //
 
 function populateItemSelector(category) {
     const itemTrack = document.getElementById("item-track");
     const scaleSlider = document.getElementById('scale-slider');
-    itemTrack.innerHTML = ''; // Clear existing items
+    itemTrack.innerHTML = '';
 
     const items = CATEGORIZED_FURNITURE[category];
     if (!items) return;
 
     items.forEach(itemData => {
-        if (furniturePalette[itemData.modelName]) { // Check if the 3D model was loaded
-            // Create a container div that will be the button
+        if (furniturePalette[itemData.modelName]) {
             const buttonContainer = document.createElement('div');
             buttonContainer.classList.add('item-image-button');
-
-            // Create the image element
             const itemImage = document.createElement('img');
             itemImage.src = itemData.img;
-            itemImage.alt = itemData.displayName; // for accessibility
-
-            // Add the image to the container
+            itemImage.alt = itemData.displayName;
             buttonContainer.appendChild(itemImage);
 
-            // Add the click listener to the container
             buttonContainer.addEventListener('click', () => {
                 if (activeObject) return;
                 currentObjectToPlace = {
@@ -234,7 +249,13 @@ function onSelect() {
     if (reticle.visible && currentObjectToPlace) {
         const model = currentObjectToPlace.model.clone();
         model.scale.setScalar(currentObjectToPlace.scale || 1.0);
+        
+        // ✨ FIX: Add stable grounding logic on initial placement
+        const box = new THREE.Box3().setFromObject(model);
+        const verticalOffset = -box.min.y;
         model.position.setFromMatrixPosition(reticle.matrix);
+        model.position.y += verticalOffset;
+
         scene.add(model);
         interactableObjects.push(model);
         
@@ -256,7 +277,6 @@ function onSelect() {
             }
             activeObject = tappedObject;
             document.getElementById('scale-slider').value = activeObject.scale.x;
-            document.getElementById('rotate-slider').value = activeObject.rotation.y;
             showActionMenu();
         }
     }
@@ -269,18 +289,21 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+function cleanupScene() {
+    const objectsToRemove = [...interactableObjects];
+    objectsToRemove.forEach(obj => scene.remove(obj));
+    interactableObjects.length = 0;
+}
+
 function animate() {
     renderer.setAnimationLoop(render);
 }
 
 function render(timestamp, frame) {
-    // Inside the render() function
     if (frame) {
-        // We are in an AR session
         exitBtn.style.display = 'block';
     } else {
-        // We are not in an AR session
-        exitBtn.style.display = 'none';
+        if(exitBtn) exitBtn.style.display = 'none';
     }
 
     if (frame) {
@@ -291,7 +314,11 @@ function render(timestamp, frame) {
             session.requestReferenceSpace('viewer').then(refSpace => {
                 session.requestHitTestSource({ space: refSpace }).then(source => hitTestSource = source);
             });
-            session.addEventListener('end', () => { hitTestSourceRequested = false; hitTestSource = null; });
+            session.addEventListener('end', () => {
+                hitTestSourceRequested = false;
+                hitTestSource = null;
+                cleanupScene();
+            });
             hitTestSourceRequested = true;
         }
 
@@ -303,7 +330,11 @@ function render(timestamp, frame) {
                 reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
                 
                 if (activeObject) {
+                    // ✨ FIX: Add stable grounding logic for live movement
+                    const box = new THREE.Box3().setFromObject(activeObject);
+                    const offset = activeObject.position.y - box.min.y;
                     activeObject.position.setFromMatrixPosition(reticle.matrix);
+                    activeObject.position.y += offset;
                 }
             } else {
                 reticle.visible = false;
