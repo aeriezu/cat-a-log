@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AR Furniture</title>
 
-    <script src="https://hammerjs.github.io/dist/hammer.min.js"></script>
-
     <script type="importmap">
     {
         "imports": {
@@ -43,8 +41,9 @@
         <div id="action-menu" style="display: none;">
             <button id="delete-btn">Delete</button>
 
-            <div id="rotate-control">
-                <p>Swipe to Rotate</p>
+            <div class="slider-control">
+                <label for="rotate-slider">Rotate</label>
+                <input type="range" id="rotate-slider" min="0" max="6.28" step="0.01" value="0">
             </div>
 
             <div class="slider-control">
