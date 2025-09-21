@@ -1,29 +1,82 @@
-/* Add these new styles to your existing CSS file */
-#furniture-menu {
+/* Make the body fill the screen without scrolling */
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: sans-serif;
+}
+
+/* Make the AR canvas the background, covering the whole screen */
+#ar-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+}
+
+/* Main overlay container */
+#overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* Style the menus to be neat bars at the bottom */
+#furniture-menu, #action-menu {
     position: absolute;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 10px;
+    gap: 10px; /* Adjusted gap for more controls */
+    background-color: rgba(0, 0, 0, 0.25);
     padding: 10px;
-    background-color: rgba(0, 0, 0, 0.5);
-    border-radius: 20px;
-    z-index: 10;
+    border-radius: 30px;
+    backdrop-filter: blur(10px);
+    pointer-events: auto;
+    align-items: center;
 }
 
-#furniture-menu button {
-    padding: 10px 15px;
+#action-menu {
+    display: none;
+}
+
+/* Style for all buttons */
+#furniture-menu button, #action-menu button {
+    padding: 12px 20px;
     font-size: 16px;
-    background-color: #333;
+    background-color: rgba(255, 255, 255, 0.2);
     color: white;
-    border: 1px solid #555;
-    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 20px;
     cursor: pointer;
+    transition: background-color 0.2s;
+    flex-shrink: 0; /* Prevent buttons from shrinking */
 }
 
-#furniture-menu button.selected {
-    /* Style for the button when in "placing mode" */
-    background-color: #007aff;
-    border-color: #007aff;
+#furniture-menu button:hover, #action-menu button:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+}
+
+#confirm-btn {
+    background-color: rgba(20, 150, 255, 0.5);
+    border-color: rgba(20, 150, 255, 1);
+}
+
+/* ✨ MODIFIED: Style for ANY slider control */
+.slider-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    padding: 0 10px;
+}
+
+#scale-slider, #rotate-slider {
+    cursor: pointer;
 }
