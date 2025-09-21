@@ -19,7 +19,7 @@ const FURNITURE_DATA = {
     'Object_46':  { displayName: 'Wooden Cabinet', scale: 0.05 },
     'Object_48':  { displayName: 'Gray Queen Bed', scale: 0.05 },
     'Object_50':  { displayName: 'TV Stand', scale: 0.05 },
-    'Object_8':   { displayName: 'Safe', scale: 0.05 },
+    'Object_8':   { displayName: 'Toilet Closed Lid', scale: 0.05 },
     'Object_10':  { displayName: 'Blue Queen Bed', scale: 0.05 },
     'Object_12':  { displayName: 'Flower Dresser', scale: 0.05 },
     'Object_14':  { displayName: 'White TV Stand', scale: 0.05 },
@@ -34,7 +34,7 @@ const FURNITURE_DATA = {
     'Object_62':  { displayName: 'Square Lamp', scale: 0.05 },
     'Object_64':  { displayName: 'Black Sink', scale: 0.05 },
     'Object_66':  { displayName: 'White Counter Sink', scale: 0.05 },
-    'Object_6':   { displayName: 'Toilet', scale: 0.05 },
+    'Object_6':   { displayName: 'Toilet Open Lid', scale: 0.05 },
     'Object_4':   { displayName: 'White Fireplace', scale: 0.05 },
     'Object_68':  { displayName: 'Dark Counter Sink', scale: 0.05 }
 };
