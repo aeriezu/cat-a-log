@@ -1,178 +1,255 @@
-/* --- REFINED style.css --- */
+/* latin-ext */
+@font-face {
+  font-family: 'Gloria Hallelujah';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url(https://design.penpot.app/internal/gfonts/font/gloriahallelujah/v24/LYjYdHv3kUk9BMV96EIswT9DIbW-MIS71zO0vg.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Gloria Hallelujah';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url(https://design.penpot.app/internal/gfonts/font/gloriahallelujah/v24/LYjYdHv3kUk9BMV96EIswT9DIbW-MIS11zM.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
-/* General Body Styles */
+
 html, body {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    overflow: hidden; /* Prevents scrolling */
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    color: white;
+  margin: 0;
+  min-height: 100%;
+  min-width: 100%;
+  padding: 0;
 }
 
-/* AR and UI Containers */
-#ar-container {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 0; /* Base layer */
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100vw;
+  min-height: 100vh;
 }
 
-#overlay {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 1; /* UI layer is on top of AR */
-    pointer-events: none; /* Allows taps to pass through to the AR scene */
+* {
+  box-sizing: border-box;
 }
 
-/* Make UI elements clickable again */
-#overlay > * {
-    pointer-events: auto;
+.text-node { background-clip: text !important; -webkit-background-clip: text !important; }
+
+/* Welcome Board */
+.welcome-bo-d59084a8d467 {
+  position: relative;
+  width: 1194px;
+  height: 834px;
+  background: #75c79fFF;
+  border: 4px solid linear-gradient(to bottom, rgba(224, 170, 62, 1) 25%,rgba(221, 224, 192, 1) 75%,rgba(184, 138, 68, 1) 100%);
+  border-radius: 0px 0px 0px 0px;
+  overflow: hidden;
+  z-index: 0;
 }
 
-/* Category Selector */
-.category-selector {
-    position: absolute;
-    left: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 10px;
-    border-radius: 25px;
+/* Katie's_Artwork */
+.katies-ar-d59238be6008 > svg {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  transform: translate(0px,0px);
+}
+.katies-ar-d59238be6008 {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 626px;
+  height: 835px;
 }
 
-.category-button {
-    font-size: 24px;
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    color: white;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    cursor: pointer;
-    transition: background-color 0.2s, border-color 0.2s;
+/* Click_here_button */
+.clickhere-d592ed83ecaf {
+  position: absolute;
+  left: 916px;
+  top: 534px;
+  width: 241px;
+  height: 71px;
 }
 
-.category-button:hover {
-    background: rgba(255, 255, 255, 0.3);
+/* Click here~ text*/
+.click-here-d592ed83ecb1 {
+  position: absolute;
+  left: 29.28px;
+  top: 11.45px;
+  width: 193.7px;
+  height: 38.94px;
+}
+.click-here-d592ed83ecb1 .root-0 {
+  
+  
+  display: flex;
+  white-space: break-spaces;
+  align-items: flex-start;
+}
+.click-here-d592ed83ecb1 .root-0-paragraph-set-0 {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: inherit;
+  min-width: 100%;
+  margin-right: 1px;
+  vertical-align: top;
+}
+.click-here-d592ed83ecb1 .root-0-paragraph-set-0-paragraph-0 {
+  font-size: 0;
+  line-height: 1.2;
+  margin: 0;
+  text-align: left;
+}
+.click-here-d592ed83ecb1 .root-0-paragraph-set-0-paragraph-0-text-0 {
+  color: rgba(255, 255, 255, 1);
+  text-transform: none;
+  
+  line-break: auto;
+  overflow-wrap: initial;
+  white-space: break-spaces;
+  font-size: 36px;
+  text-rendering: geometricPrecision;
+  caret-color: rgba(255, 255, 255, 1);
+  text-decoration: none;
+  letter-spacing: 0px;
+  font-family: "Gloria Hallelujah";
+  font-style: normal;
+  font-weight: 400;
 }
 
-.category-button.active {
-    background: #007aff;
-    border-color: #007aff;
+/* Rectangle */
+.rectangle-d592ed83ecb0 {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 241px;
+  height: 71px;
+  background: #e7cbcbFF;
+  border-radius: 10px 10px 10px 10px;
 }
 
-/* Item Track Carousel */
-#item-track-container {
-    position: absolute;
-    bottom: 20px;
-    width: 100%;
+/* Welcome_text */
+.welcome-to-d592ed83ecae {
+  position: absolute;
+  left: 663px;
+  top: 208px;
+  width: 507px;
+  height: 254px;
 }
-
-#item-track {
-    display: flex;
-    overflow-x: auto;
-    padding: 10px;
-    gap: 10px;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+.welcome-to-d592ed83ecae .root-0 {
+  
+  
+  display: flex;
+  white-space: break-spaces;
+  align-items: flex-start;
 }
-
-#item-track::-webkit-scrollbar {
-    display: none;
+.welcome-to-d592ed83ecae .root-0-paragraph-set-0 {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: inherit;
+  min-width: 100%;
+  margin-right: 1px;
+  vertical-align: top;
 }
-
-/* --- In style.css, REPLACE the old ".item-button" rule with these --- */
-
-.item-image-button {
-    width: 80px;
-    height: 80px;
-    background-color: rgba(255, 255, 255, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.4);
-    border-radius: 10px;
-    cursor: pointer;
-    flex-shrink: 0; /* Prevents items from squishing */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: background-color 0.2s, border-color 0.2s;
-    padding: 5px;
-    box-sizing: border-box;
+.welcome-to-d592ed83ecae .root-0-paragraph-set-0-paragraph-0 {
+  font-size: 0;
+  line-height: 1.2;
+  margin: 0;
+  text-align: left;
 }
-
-.item-image-button:hover {
-    background-color: rgba(255, 255, 255, 0.4);
-    border-color: #fff;
+.welcome-to-d592ed83ecae .root-0-paragraph-set-0-paragraph-0-text-0 {
+  color: rgba(255, 255, 255, 1);
+  text-transform: none;
+  
+  line-break: auto;
+  overflow-wrap: initial;
+  white-space: break-spaces;
+  font-size: 60px;
+  text-rendering: geometricPrecision;
+  caret-color: rgba(255, 255, 255, 1);
+  text-decoration: none;
+  letter-spacing: 0px;
+  font-family: "Gloria Hallelujah";
+  font-style: normal;
+  font-weight: 400;
 }
-
-.item-image-button img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain; /* Ensures the image fits without being stretched */
-    pointer-events: none; /* Makes sure the click registers on the div, not the image */
+.welcome-to-d592ed83ecae .root-0-paragraph-set-0-paragraph-1 {
+  font-size: 0;
+  line-height: 1.2;
+  margin: 0;
+  text-align: left;
 }
-
-/* Action Menu */
-#action-menu {
-    position: absolute;
-    bottom: 20px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    box-sizing: border-box;
+.welcome-to-d592ed83ecae .root-0-paragraph-set-0-paragraph-1-text-0 {
+  color: rgba(255, 255, 255, 1);
+  text-transform: none;
+  
+  line-break: auto;
+  overflow-wrap: initial;
+  white-space: break-spaces;
+  font-size: 18px;
+  text-rendering: geometricPrecision;
+  caret-color: rgba(255, 255, 255, 1);
+  text-decoration: none;
+  letter-spacing: 0px;
+  font-family: "Gloria Hallelujah";
+  font-style: normal;
+  font-weight: 400;
 }
-
-#action-menu button {
-    padding: 12px 20px;
-    background-color: #007aff;
-    border: none;
-    border-radius: 20px;
-    color: white;
-    font-size: 16px;
-    font-weight: 600;
+.welcome-to-d592ed83ecae .root-0-paragraph-set-0-paragraph-2 {
+  font-size: 0;
+  line-height: 1.2;
+  margin: 0;
+  text-align: left;
 }
-
-#action-menu input[type="range"] {
-    width: 100px;
+.welcome-to-d592ed83ecae .root-0-paragraph-set-0-paragraph-2-text-0 {
+  color: rgba(255, 255, 255, 1);
+  text-transform: none;
+  
+  line-break: auto;
+  overflow-wrap: initial;
+  white-space: break-spaces;
+  font-size: 80px;
+  text-rendering: geometricPrecision;
+  caret-color: rgba(255, 255, 255, 1);
+  text-decoration: none;
+  letter-spacing: 0px;
+  font-family: "Gloria Hallelujah";
+  font-style: normal;
+  font-weight: 400;
 }
-
-/* AR Button specific style */
-#ARButton {
-    position: absolute !important;
-    bottom: 20px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    z-index: 2; /* Ensure it's on top of all other UI */
+.welcome-to-d592ed83ecae .root-0-paragraph-set-0-paragraph-2-text-1 {
+  color: rgba(255, 255, 255, 1);
+  text-transform: none;
+  
+  line-break: auto;
+  overflow-wrap: initial;
+  white-space: break-spaces;
+  font-size: 48px;
+  text-rendering: geometricPrecision;
+  caret-color: rgba(255, 255, 255, 1);
+  text-decoration: none;
+  letter-spacing: 0px;
+  font-family: "Gloria Hallelujah";
+  font-style: normal;
+  font-weight: 400;
 }
-
-.slider-control {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: white;
-    padding: 0 10px;
-}
-
-#scale-slider, #rotate-slider {
-    cursor: pointer;
-}
-
-#exit-ar-btn {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    width: 45px;
-    height: 45px;
-    border-radius: 50%; /* Make it circular */
-    font-size: 20px;
-    pointer-events: auto;
-    display: none; /* Hidden by default */
+.welcome-to-d592ed83ecae .root-0-paragraph-set-0-paragraph-2-text-2 {
+  color: rgba(255, 255, 255, 1);
+  text-transform: none;
+  
+  line-break: auto;
+  overflow-wrap: initial;
+  white-space: break-spaces;
+  font-size: 36px;
+  text-rendering: geometricPrecision;
+  caret-color: rgba(255, 255, 255, 1);
+  text-decoration: none;
+  letter-spacing: 0px;
+  font-family: "Gloria Hallelujah";
+  font-style: normal;
+  font-weight: 400;
 }
