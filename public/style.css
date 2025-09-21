@@ -13,6 +13,8 @@ body {
     right: 0;
     bottom: 0;
     z-index: -1;
+    /* ✨ NEW: Prevents the browser from zooming the page on pinch */
+    touch-action: none;
 }
 
 /* Main overlay container */
@@ -77,19 +79,19 @@ body {
     padding: 0 10px;
 }
 
-#scale-slider, #rotate-slider {
+#rotate-slider {
     cursor: pointer;
 }
 
-/* ✨ NEW: Styles for the Exit AR button */
+/* Styles for the Exit AR button */
 #exit-ar-btn {
     position: absolute;
     top: 20px;
     right: 20px;
     width: 45px;
     height: 45px;
-    border-radius: 50%; /* Make it circular */
+    border-radius: 50%;
     font-size: 20px;
     pointer-events: auto;
-    display: none; /* Hidden by default */
+    display: none;
 }

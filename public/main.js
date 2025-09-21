@@ -112,9 +112,7 @@ function init() {
                 scene.remove(activeObject.userData.boxHelper);
             }
             const index = interactableObjects.indexOf(activeObject);
-            if (index > -1) {
-                interactableObjects.splice(index, 1);
-            }
+            if (index > -1) interactableObjects.splice(index, 1);
             activeObject = null;
             hideActionMenu();
         }
@@ -139,9 +137,7 @@ function init() {
     exitBtn = document.getElementById('exit-ar-btn');
     exitBtn.addEventListener('click', () => {
         const session = renderer.xr.getSession();
-        if (session) {
-            session.end();
-        }
+        if (session) session.end();
     });
 
     renderer.xr.addEventListener('sessionend', cleanupScene);
@@ -150,7 +146,7 @@ function init() {
     const hammer = new Hammer(renderer.domElement);
     hammer.get('pinch').set({ enable: true });
 
-    hammer.on('pinchstart', (event) => {
+    hammer.on('pinchstart', () => {
         if (activeObject) {
             initialPinchScale = activeObject.scale.x;
         }
