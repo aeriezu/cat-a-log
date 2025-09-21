@@ -106,6 +106,7 @@ function init() {
     renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
     renderer.domElement.addEventListener('touchend', onTouchEnd);
 
+    // --- Action Button Listeners ---
     document.getElementById('rotate-btn').addEventListener('click', () => {
         if (activeObject) {
             activeObject.rotation.y += Math.PI / 4;
@@ -132,11 +133,21 @@ function init() {
             hideActionMenu();
         }
     });
+
+    // ✨ NEW: Add event listener for the scale slider
+    const scaleSlider = document.getElementById('scale-slider');
+    scaleSlider.addEventListener('input', (event) => {
+        if (activeObject) {
+            const newScale = parseFloat(event.target.value);
+            activeObject.scale.setScalar(newScale);
+        }
+    });
 }
 
 // --- UI & PALETTE LOADING --- //
 function loadFurniturePalette() {
     const menuContainer = document.getElementById('furniture-menu');
+    const scaleSlider = document.getElementById('scale-slider');
     
     loader.load('low_poly_furnitures_full_bundle.glb', (gltf) => {
         gltf.scene.traverse((child) => {
@@ -156,6 +167,8 @@ function loadFurniturePalette() {
                         model: furniturePalette[modelName],
                         scale: data.scale
                     };
+                    // ✨ NEW: Set the slider to the object's initial scale
+                    scaleSlider.value = data.scale;
                     ignoreNextTap = true;
                     console.log(`Selected "${data.displayName}" for placement.`);
                 };
@@ -197,14 +210,6 @@ function onSelect() {
         const model = currentObjectToPlace.model.clone();
         model.scale.setScalar(currentObjectToPlace.scale || 1.0);
         
-        const box = new THREE.Box3().setFromObject(model);
-        const verticalOffset = -box.min.y;
-        
-        model.userData.verticalOffset = verticalOffset;
-        
-        model.position.setFromMatrixPosition(reticle.matrix);
-        model.position.y += verticalOffset;
-
         model.visible = true;
         scene.add(model);
         interactableObjects.push(model);
@@ -213,6 +218,8 @@ function onSelect() {
         setObjectOpacity(activeObject, 0.7);
         showActionMenu();
 
+        // The render loop will now handle the initial positioning.
+        
         const boxHelper = new THREE.Box3Helper(new THREE.Box3().setFromObject(model), 0xff0000);
         boxHelper.material.transparent = true;
         boxHelper.material.opacity = 0;
@@ -332,27 +339,25 @@ function render(timestamp, frame) {
         if (hitTestSource) {
             const hitTestResults = frame.getHitTestResults(hitTestSource);
             
-            // ✨ --- FIX STARTS HERE --- ✨
-            // 1. We determine if the reticle *should* be logically visible
             if (hitTestResults.length > 0) {
                 const hit = hitTestResults[0];
-                reticle.visible = true; // The reticle's data is valid
+                reticle.visible = true;
                 reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
             } else {
-                reticle.visible = false; // The reticle's data is invalid
+                reticle.visible = false;
             }
             
-            // 2. We control the reticle's VISUAL appearance separately.
-            //    We hide the ring when an object is active to avoid visual clutter.
             reticle.material.visible = !activeObject;
 
-            // 3. The movement logic now works because `reticle.visible` is correct.
+            // ✨ MODIFIED: This logic now runs every frame for the active object,
+            // ensuring it stays grounded even when its scale changes.
             if (activeObject && reticle.visible) {
-                const offset = activeObject.userData.verticalOffset || 0;
+                // Recalculate the bounding box and offset each frame
+                const box = new THREE.Box3().setFromObject(activeObject);
+                const offset = -box.min.y;
                 activeObject.position.setFromMatrixPosition(reticle.matrix);
                 activeObject.position.y += offset;
             }
-            // ✨ --- FIX ENDS HERE --- ✨
         }
     }
 
