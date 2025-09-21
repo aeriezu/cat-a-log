@@ -37,5 +37,5 @@
 # Click Image to Watch Video Demo
 [![alt text](https://github.com/aeriezu/cat-a-log/blob/main/screenshots/Screenshot%202025-09-21%20121657.png)](https://www.youtube.com/watch?v=8ttoN76Kx5s)
 
-[![alt text](https://github.com/aeriezu/cat-a-log/blob/main/screenshots/Screenshot 2025-09-21 122846.png)](https://www.youtube.com/watch?v=0Bmxb8_KfqI)
+[![alt text](https://github.com/aeriezu/cat-a-log/blob/main/screenshots/Screenshot%202025-09-21%20122846.png)](https://www.youtube.com/watch?v=0Bmxb8_KfqI)
 ---
