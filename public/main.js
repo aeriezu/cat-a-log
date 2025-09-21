@@ -54,10 +54,8 @@ let currentObjectToPlace = null;
 let activeObject = null;
 const raycaster = new THREE.Raycaster();
 let ignoreNextTap = false;
-
-// ✨ NEW: Re-introducing variables for double-tap detection
 let lastTapTime = 0;
-const doubleTapDelay = 300; // milliseconds
+const doubleTapDelay = 300;
 
 init();
 animate();
@@ -203,14 +201,12 @@ function setObjectOpacity(object, opacity) {
 }
 
 // --- PLACEMENT & INTERACTION --- //
-// ✨ MODIFIED: onSelect now handles placing new objects AND robust double-tap selection.
 function onSelect(event) {
     if (ignoreNextTap) {
         ignoreNextTap = false;
         return;
     }
 
-    // --- Case 1: Placing a NEW object ---
     if (reticle.visible && currentObjectToPlace) {
         const model = currentObjectToPlace.model.clone();
         model.scale.setScalar(currentObjectToPlace.scale || 1.0);
@@ -237,20 +233,32 @@ function onSelect(event) {
         model.userData.boxHelper = boxHelper;
         model.userData.isColliding = false;
 
+        // ✨ --- NEW: Z-Fighting Fix --- ✨
+        // We traverse the newly placed model and apply a polygon offset
+        // to all its materials. This prevents flickering lines.
+        model.traverse((child) => {
+            if (child.isMesh) {
+                if (child.material) {
+                    child.material.polygonOffset = true;
+                    child.material.polygonOffsetFactor = -1.0;
+                    child.material.polygonOffsetUnits = -1.0;
+                }
+            }
+        });
+        // ✨ --- End of Fix --- ✨
+
         currentObjectToPlace = null; 
         return;
     }
 
-    // --- Case 2: Double-tapping an EXISTING object ---
+    // --- Double-tap Logic ---
     const currentTime = new Date().getTime();
     const timeSinceLastTap = currentTime - lastTapTime;
     lastTapTime = currentTime;
 
     if (timeSinceLastTap < doubleTapDelay) {
-        // This is a double tap, try to select an object.
-        if (activeObject) return; // Don't do anything if an object is already active
+        if (activeObject) return;
 
-        // Raycast from the center of the screen
         raycaster.setFromCamera({ x: 0, y: 0 }, camera);
         const intersects = raycaster.intersectObjects(interactableObjects, true);
 
@@ -263,7 +271,6 @@ function onSelect(event) {
             activeObject = tappedObject;
             setObjectOpacity(activeObject, 0.7);
             
-            // Update sliders to match the object's current state
             document.getElementById('scale-slider').value = activeObject.scale.x;
             document.getElementById('rotate-slider').value = activeObject.rotation.y;
             
@@ -272,11 +279,11 @@ function onSelect(event) {
     }
 }
 
-// ✨ These functions are no longer needed for primary interaction.
+// ✨ These functions are intentionally left empty in this interaction model.
 function onTouchStart(event) {}
 function onTouchMove(event) {}
 function onTouchEnd() {}
-function updateCollisions(targetObject, potentialPosition) {} // Kept for future potential use
+function updateCollisions(targetObject, potentialPosition) {}
 
 // --- RENDER LOOP & UTILS --- //
 function onWindowResize() {
@@ -331,7 +338,6 @@ function render(timestamp, frame) {
         const helper = object.userData.boxHelper;
         if (helper) {
             helper.box.setFromObject(object);
-            // Collision box is always invisible in this version, but logic is here if needed.
             const targetOpacity = 0.0;
             helper.material.opacity += (targetOpacity - helper.material.opacity) * 0.1;
         }
