@@ -56,7 +56,8 @@ const raycaster = new THREE.Raycaster();
 let ignoreNextTap = false;
 let lastTapTime = 0;
 const doubleTapDelay = 300;
-let exitBtn; // ✨ 1. Define the exit button variable here
+let exitBtn;
+let initialPinchScale = 1;
 
 init();
 animate();
@@ -127,20 +128,6 @@ function init() {
         }
     });
 
-    const scaleSlider = document.getElementById('scale-slider');
-    scaleSlider.addEventListener('input', (event) => {
-        if (activeObject) {
-            const box = new THREE.Box3();
-            box.setFromObject(activeObject);
-            const oldBottomY = box.min.y;
-            const newScale = parseFloat(event.target.value);
-            activeObject.scale.setScalar(newScale);
-            box.setFromObject(activeObject);
-            const newBottomY = box.min.y;
-            activeObject.position.y += (oldBottomY - newBottomY);
-        }
-    });
-
     const rotateSlider = document.getElementById('rotate-slider');
     rotateSlider.addEventListener('input', (event) => {
         if (activeObject) {
@@ -149,7 +136,6 @@ function init() {
         }
     });
     
-    // ✨ 2. Get the button element and set up its click listener
     exitBtn = document.getElementById('exit-ar-btn');
     exitBtn.addEventListener('click', () => {
         const session = renderer.xr.getSession();
@@ -158,14 +144,40 @@ function init() {
         }
     });
 
-    // We still need the sessionend listener to clean up the scene
     renderer.xr.addEventListener('sessionend', cleanupScene);
+
+    // Setup Hammer.js for pinch gestures
+    const hammer = new Hammer(renderer.domElement);
+    hammer.get('pinch').set({ enable: true });
+
+    hammer.on('pinchstart', (event) => {
+        if (activeObject) {
+            initialPinchScale = activeObject.scale.x;
+        }
+    });
+
+    hammer.on('pinchmove', (event) => {
+        if (activeObject) {
+            const box = new THREE.Box3();
+            box.setFromObject(activeObject);
+            const oldBottomY = box.min.y;
+
+            let newScale = initialPinchScale * event.scale;
+            newScale = Math.max(0.01, Math.min(1.75, newScale));
+
+            activeObject.scale.setScalar(newScale);
+
+            box.setFromObject(activeObject);
+            const newBottomY = box.min.y;
+
+            activeObject.position.y += (oldBottomY - newBottomY);
+        }
+    });
 }
 
 // --- UI & PALETTE LOADING --- //
 function loadFurniturePalette() {
     const menuContainer = document.getElementById('furniture-menu');
-    const scaleSlider = document.getElementById('scale-slider');
     
     loader.load('low_poly_furnitures_full_bundle.glb', (gltf) => {
         gltf.scene.traverse((child) => {
@@ -185,7 +197,6 @@ function loadFurniturePalette() {
                         model: furniturePalette[modelName],
                         scale: data.scale
                     };
-                    scaleSlider.value = data.scale;
                     ignoreNextTap = true;
                 };
                 menuContainer.appendChild(button);
@@ -295,7 +306,6 @@ function onSelect(event) {
             activeObject = tappedObject;
             setObjectOpacity(activeObject, 0.7);
             
-            document.getElementById('scale-slider').value = activeObject.scale.x;
             document.getElementById('rotate-slider').value = activeObject.rotation.y;
             
             showActionMenu();
@@ -320,12 +330,9 @@ function animate() {
 }
 
 function render(timestamp, frame) {
-    // ✨ 3. This block now controls the exit button's visibility every frame
     if (frame) {
-        // We are in an AR session
         exitBtn.style.display = 'block';
     } else {
-        // We are not in an AR session
         if (exitBtn && exitBtn.style.display !== 'none') {
             exitBtn.style.display = 'none';
         }
@@ -333,9 +340,9 @@ function render(timestamp, frame) {
 
     if (frame) {
         const referenceSpace = renderer.xr.getReferenceSpace();
-        const session = renderer.xr.getSession();
-
+        
         if (!hitTestSourceRequested) {
+            const session = renderer.xr.getSession();
             session.requestReferenceSpace('viewer').then(refSpace => {
                 session.requestHitTestSource({ space: refSpace }).then(source => {
                     hitTestSource = source;
@@ -344,7 +351,6 @@ function render(timestamp, frame) {
             session.addEventListener('end', () => {
                 hitTestSourceRequested = false;
                 hitTestSource = null;
-                // We call cleanupScene here as well, in case the session is ended by the browser
                 cleanupScene(); 
             });
             hitTestSourceRequested = true;
