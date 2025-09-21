@@ -67,20 +67,18 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
         // --- DATA CONFIGURATION --- //
-        // ✨ NEW: Added an optional 'rotation' property for models that need to be turned.
-        // The values are [X, Y, Z] angles in radians.
-        // Common values: Math.PI / 2 (90°), Math.PI (180°), -Math.PI / 2 (-90°)
+        // ✨ UPDATED: Changed rotation to negative to turn objects to the right (clockwise).
         const FURNITURE_DATA = {
-            'Object_22':  { displayName: 'Black Loveseat', rotation: [0, Math.PI / 6, 0] },
-            'Object_24':  { displayName: 'Black Single Sofa', rotation: [0, Math.PI / 6, 0] },
-            'Object_26':  { displayName: 'Beige Single Chair', rotation: [0, Math.PI / 6, 0] },
-            'Object_28':  { displayName: 'Blue Couch', rotation: [0, Math.PI / 6, 0] },
-            'Object_30':  { displayName: 'Gray Single Sofa', rotation: [0, Math.PI / 6, 0] },
-            'Object_32':  { displayName: 'Gray Couch', rotation: [0, Math.PI / 6, 0] },
-            'Object_34':  { displayName: 'White Leather Couch', rotation: [0, Math.PI / 6, 0] },
-            'Object_36':  { displayName: 'Beige Single Couch', rotation: [0, Math.PI / 6, 0] },
-            'Object_38':  { displayName: 'Beige Sofa', rotation: [0, Math.PI / 6, 0] },
-            'Object_40':  { displayName: 'Blue Twin Bed', rotation: [0, Math.PI / 2, 0] }, // Turned 90 degrees
+            'Object_22':  { displayName: 'Black Loveseat', rotation: [0, -Math.PI / 6, 0] },
+            'Object_24':  { displayName: 'Black Single Sofa', rotation: [0, -Math.PI / 6, 0] },
+            'Object_26':  { displayName: 'Beige Single Chair', rotation: [0, -Math.PI / 6, 0] },
+            'Object_28':  { displayName: 'Blue Couch', rotation: [0, -Math.PI / 6, 0] },
+            'Object_30':  { displayName: 'Gray Single Sofa', rotation: [0, -Math.PI / 6, 0] },
+            'Object_32':  { displayName: 'Gray Couch', rotation: [0, -Math.PI / 6, 0] },
+            'Object_34':  { displayName: 'White Leather Couch', rotation: [0, -Math.PI / 6, 0] },
+            'Object_36':  { displayName: 'Beige Single Couch', rotation: [0, -Math.PI / 6, 0] },
+            'Object_38':  { displayName: 'Beige Sofa', rotation: [0, -Math.PI / 6, 0] },
+            'Object_40':  { displayName: 'Blue Twin Bed', rotation: [0, Math.PI / 2, 0] },
             'Object_42':  { displayName: 'Black Twin Bed', rotation: [0, Math.PI / 2, 0] },
             'Object_44':  { displayName: 'Red Queen Bed', rotation: [0, Math.PI / 2, 0] },
             'Object_46':  { displayName: 'Wooden Cabinet' },
@@ -90,9 +88,9 @@
             'Object_10':  { displayName: 'Blue Queen Bed', rotation: [0, Math.PI / 2, 0] },
             'Object_12':  { displayName: 'Flower Dresser' },
             'Object_14':  { displayName: 'White TV Stand' },
-            'Object_16':  { displayName: 'Pink Couch', rotation: [0, Math.PI / 6, 0] },
-            'Object_18':  { displayName: 'Pink Loveseat', rotation: [0, Math.PI / 6, 0] },
-            'Object_20':  { displayName: 'Black Couch', rotation: [0, Math.PI / 6, 0] },
+            'Object_16':  { displayName: 'Pink Couch', rotation: [0, -Math.PI / 6, 0] },
+            'Object_18':  { displayName: 'Pink Loveseat', rotation: [0, -Math.PI / 6, 0] },
+            'Object_20':  { displayName: 'Black Couch', rotation: [0, -Math.PI / 6, 0] },
             'Object_52':  { displayName: 'Dark Brown TV Stand' },
             'Object_54':  { displayName: 'Wooden Night Stand' },
             'Object_56':  { displayName: 'Gray Closet' },
@@ -116,11 +114,16 @@
             generateBtn.disabled = true;
             statusDiv.textContent = 'Initializing...';
 
-            const canvas = new THREE.Scene();
+            const canvas = document.getElementById('renderCanvas');
+            const scene = new THREE.Scene();
+
             scene.background = new THREE.Color(0xf0f0f0);
             const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
             const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
-            renderer.setSize(256, 256);
+            
+            // ✨ UPDATED: Increased renderer size for higher quality images.
+            const imageSize = 512;
+            renderer.setSize(imageSize, imageSize);
             
             scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2));
             const light = new THREE.DirectionalLight(0xffffff, 2);
@@ -158,11 +161,10 @@
                 statusDiv.textContent = `Generating: ${data.displayName} (${++count}/${totalModels})`;
                 const modelClone = model.clone();
 
-                // ✨ NEW: Check for and apply custom rotation BEFORE calculating the bounding box.
                 if (data.rotation) {
                     modelClone.rotation.set(data.rotation[0], data.rotation[1], data.rotation[2]);
                 } else {
-                    modelClone.rotation.set(0, 0, 0); // Reset if no custom rotation
+                    modelClone.rotation.set(0, 0, 0);
                 }
                 
                 scene.add(modelClone);
@@ -172,8 +174,8 @@
                 const center = box.getCenter(new THREE.Vector3());
                 const maxDim = Math.max(size.x, size.y, size.z);
                 
-                // ✨ UPDATED: Increased fitOffset from 1.2 to 1.8 to give more padding.
-                const fitOffset = 1.8;
+                // ✨ UPDATED: Decreased fitOffset to zoom in slightly.
+                const fitOffset = 1.6;
                 const fovRad = camera.fov * (Math.PI / 180);
                 let cameraZ = Math.abs(maxDim / (2 * Math.tan(fovRad / 2))) * fitOffset;
 
