@@ -187,3 +187,22 @@ html, body {
     pointer-events: auto;
     display: none;
 }
+
+#ARButton {
+    position: absolute !important;
+    bottom: 20px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 2; /* Ensure it's on top of all other UI */
+    
+    /* Style to match other buttons */
+    padding: 12px 20px;
+    background-color: #007aff;
+    border: none;
+    border-radius: 20px;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    transition: background-color 0.2s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
