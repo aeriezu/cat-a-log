@@ -110,7 +110,7 @@ function init() {
 
     window.addEventListener('resize', onWindowResize);
 
-    // --- Action Button Listeners ---
+    // Action Button Listeners
     document.getElementById('delete-btn').addEventListener('click', () => {
         if (activeObject) {
             scene.remove(activeObject);
@@ -120,17 +120,15 @@ function init() {
             hideActionMenu();
         }
     });
-
     document.getElementById('confirm-btn').addEventListener('click', () => {
         if (activeObject) {
             activeObject = null;
             hideActionMenu();
         }
     });
-
     document.getElementById('scale-slider').addEventListener('input', (event) => {
         if (activeObject) {
-            // Re-apply the stable grounding logic when scaling
+            // ✨ FIX: Add stable grounding logic when scaling
             const box = new THREE.Box3().setFromObject(activeObject);
             const oldBottomY = box.min.y;
             activeObject.scale.setScalar(parseFloat(event.target.value));
@@ -139,8 +137,7 @@ function init() {
             activeObject.position.y += (oldBottomY - newBottomY);
         }
     });
-
-    // ✨ REMOVED: The rotate slider listener is no longer needed.
+    // ✨ REMOVED: Old rotate slider listener
 
     exitBtn = document.getElementById('exit-ar-btn');
     exitBtn.addEventListener('click', () => {
@@ -155,19 +152,18 @@ function init() {
     // ✨ NEW: Setup Hammer.js for swipe gestures
     const hammer = new Hammer(renderer.domElement);
     hammer.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
-
     const rotationAmount = Math.PI / 12; // 15 degrees
 
     hammer.on('swipeleft', () => {
         if (activeObject) {
-            // Per your request: swipe left rotates clockwise
+            // swipe left rotates clockwise
             activeObject.rotation.y += rotationAmount;
         }
     });
 
     hammer.on('swiperight', () => {
         if (activeObject) {
-            // Per your request: swipe right rotates counter-clockwise
+            // swipe right rotates counter-clockwise
             activeObject.rotation.y -= rotationAmount;
         }
     });
@@ -255,7 +251,7 @@ function onSelect() {
         const verticalOffset = -box.min.y;
         model.position.setFromMatrixPosition(reticle.matrix);
         model.position.y += verticalOffset;
-
+        
         scene.add(model);
         interactableObjects.push(model);
         
@@ -277,6 +273,7 @@ function onSelect() {
             }
             activeObject = tappedObject;
             document.getElementById('scale-slider').value = activeObject.scale.x;
+            // ✨ REMOVED: No longer need to set rotate slider
             showActionMenu();
         }
     }

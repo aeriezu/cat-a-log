@@ -17,7 +17,7 @@ html, body {
     top: 0; left: 0;
     width: 100%; height: 100%;
     z-index: 0;
-    /* ✨ FIX: Prevents browser from intercepting gestures */
+    /* ✨ FIX: Prevents the browser from hijacking swipe gestures */
     touch-action: none;
 }
 
