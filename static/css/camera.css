@@ -1,0 +1,98 @@
+.ar-screen {
+  display: grid;
+  grid-template-columns: 80px 1fr; /* left = categories, right = camera */
+  grid-template-rows: 1fr auto;   /* bottom = item carousel */
+  height: 100vh;
+  width: 100vw;
+  background: black;
+}
+
+/* Vertical Category Carousel (Left) */
+.category-carousel {
+  grid-row: 1 / span 2;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  gap: 1rem;
+  overflow-y: auto;
+}
+
+.category {
+  width: 60px;
+  height: 60px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.category.active {
+  background: #74c69d; /* highlight selected */
+  transform: scale(1.1);
+}
+
+/* Camera View (Middle Right) */
+.camera-view {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+}
+
+#camera-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+/* Bottom Item Carousel */
+.item-carousel {
+  grid-column: 2;
+  grid-row: 2;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.5rem;
+  overflow-x: auto;
+}
+
+.carousel-track {
+  display: flex;
+  gap: 1rem;
+}
+
+.item {
+  min-width: 80px;
+  height: 80px;
+  background: white;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: transform 0.2s;
+}
+
+.item:hover {
+  transform: scale(1.1);
+}
