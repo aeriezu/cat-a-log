@@ -56,6 +56,7 @@ const raycaster = new THREE.Raycaster();
 let ignoreNextTap = false;
 let lastTapTime = 0;
 const doubleTapDelay = 300;
+let exitBtn; // ✨ 1. Define the exit button variable here
 
 init();
 animate();
@@ -148,7 +149,8 @@ function init() {
         }
     });
     
-    const exitBtn = document.getElementById('exit-ar-btn');
+    // ✨ 2. Get the button element and set up its click listener
+    exitBtn = document.getElementById('exit-ar-btn');
     exitBtn.addEventListener('click', () => {
         const session = renderer.xr.getSession();
         if (session) {
@@ -156,14 +158,8 @@ function init() {
         }
     });
 
-    renderer.xr.addEventListener('sessionstart', () => {
-        exitBtn.style.display = 'block';
-    });
-
-    renderer.xr.addEventListener('sessionend', () => {
-        exitBtn.style.display = 'none';
-        cleanupScene();
-    });
+    // We still need the sessionend listener to clean up the scene
+    renderer.xr.addEventListener('sessionend', cleanupScene);
 }
 
 // --- UI & PALETTE LOADING --- //
@@ -324,6 +320,17 @@ function animate() {
 }
 
 function render(timestamp, frame) {
+    // ✨ 3. This block now controls the exit button's visibility every frame
+    if (frame) {
+        // We are in an AR session
+        exitBtn.style.display = 'block';
+    } else {
+        // We are not in an AR session
+        if (exitBtn && exitBtn.style.display !== 'none') {
+            exitBtn.style.display = 'none';
+        }
+    }
+
     if (frame) {
         const referenceSpace = renderer.xr.getReferenceSpace();
         const session = renderer.xr.getSession();
@@ -337,6 +344,8 @@ function render(timestamp, frame) {
             session.addEventListener('end', () => {
                 hitTestSourceRequested = false;
                 hitTestSource = null;
+                // We call cleanupScene here as well, in case the session is ended by the browser
+                cleanupScene(); 
             });
             hitTestSourceRequested = true;
         }
