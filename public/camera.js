@@ -68,7 +68,6 @@ let ignoreNextTap = false;
 let lastTapTime = 0;
 const doubleTapDelay = 300;
 let exitBtn;
-let inRotateMode = false;
 
 init();
 animate();
@@ -121,12 +120,14 @@ function init() {
             hideActionMenu();
         }
     });
+
     document.getElementById('confirm-btn').addEventListener('click', () => {
         if (activeObject) {
             activeObject = null;
             hideActionMenu();
         }
     });
+
     document.getElementById('scale-slider').addEventListener('input', (event) => {
         if (activeObject) {
             const box = new THREE.Box3().setFromObject(activeObject);
@@ -138,53 +139,22 @@ function init() {
         }
     });
 
+    // ✨ The rotate slider listener is restored
+    document.getElementById('rotate-slider').addEventListener('input', (event) => {
+        if (activeObject) {
+            activeObject.rotation.y = parseFloat(event.target.value);
+        }
+    });
+
     exitBtn = document.getElementById('exit-ar-btn');
     exitBtn.addEventListener('click', () => {
         const session = renderer.xr.getSession();
         if (session) session.end();
     });
 
-    document.getElementById('rotate-mode-btn').addEventListener('click', () => {
-        inRotateMode = true;
-        updateUIMode();
-    });
-    document.getElementById('confirm-rotate-btn').addEventListener('click', () => {
-        inRotateMode = false;
-        updateUIMode();
-    });
-
     renderer.xr.addEventListener('sessionend', cleanupScene);
     
     setupARandUI();
-
-    const hammer = new Hammer(renderer.domElement);
-    hammer.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
-    hammer.get('pan').set({ direction: Hammer.DIRECTION_ALL });
-    const rotationAmount = Math.PI / 12;
-
-    hammer.on('swipeleft', () => {
-        if (activeObject && inRotateMode) activeObject.rotation.y += rotationAmount;
-    });
-    hammer.on('swiperight', () => {
-        if (activeObject && inRotateMode) activeObject.rotation.y -= rotationAmount;
-    });
-
-    const panPointer = new THREE.Vector2();
-    hammer.on('panmove', (event) => {
-        if (activeObject && !inRotateMode) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            panPointer.x = ((event.center.x - rect.left) / rect.width) * 2 - 1;
-            panPointer.y = -((event.center.y - rect.top) / rect.height) * 2 + 1;
-            
-            raycaster.setFromCamera(panPointer, camera);
-            const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -activeObject.position.y);
-            const intersectionPoint = new THREE.Vector3();
-
-            if(raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-                activeObject.position.set(intersectionPoint.x, activeObject.position.y, intersectionPoint.z);
-            }
-        }
-    });
 }
 
 function setupARandUI() {
@@ -246,25 +216,12 @@ function showActionMenu() {
     document.getElementById('action-menu').style.display = 'flex';
     document.getElementById('item-track-container').style.display = 'none';
     document.querySelector('.category-selector').style.display = 'none';
-    inRotateMode = false;
-    updateUIMode();
 }
 
 function hideActionMenu() {
     document.getElementById('action-menu').style.display = 'none';
     document.getElementById('item-track-container').style.display = 'block';
     document.querySelector('.category-selector').style.display = 'flex';
-    inRotateMode = false;
-}
-
-function updateUIMode() {
-    document.getElementById('rotate-mode-btn').style.display = inRotateMode ? 'none' : 'block';
-    document.getElementById('scale-control-container').style.display = inRotateMode ? 'none' : 'flex';
-    document.getElementById('delete-btn').style.display = inRotateMode ? 'none' : 'block';
-    document.getElementById('confirm-btn').style.display = inRotateMode ? 'none' : 'block';
-
-    document.getElementById('rotate-indicator').style.display = inRotateMode ? 'block' : 'none';
-    document.getElementById('confirm-rotate-btn').style.display = inRotateMode ? 'block' : 'none';
 }
 
 function onSelect() {
@@ -303,6 +260,8 @@ function onSelect() {
             }
             activeObject = tappedObject;
             document.getElementById('scale-slider').value = activeObject.scale.x;
+            // ✨ The rotate slider's value is now set when an object is re-selected
+            document.getElementById('rotate-slider').value = activeObject.rotation.y;
             showActionMenu();
         }
     }
@@ -319,7 +278,7 @@ function cleanupScene() {
     const objectsToRemove = [...interactableObjects];
     objectsToRemove.forEach(obj => scene.remove(obj));
     interactableObjects.length = 0;
-    if(activeObject) {
+    if (activeObject) {
         activeObject = null;
         hideActionMenu();
     }
@@ -359,7 +318,7 @@ function render(timestamp, frame) {
                 reticle.visible = !activeObject && currentObjectToPlace;
                 reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
                 
-                if (activeObject && !inRotateMode) {
+                if (activeObject) {
                     const box = new THREE.Box3().setFromObject(activeObject);
                     const offset = activeObject.position.y - box.min.y;
                     activeObject.position.setFromMatrixPosition(reticle.matrix);

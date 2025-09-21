@@ -17,8 +17,6 @@ html, body {
     top: 0; left: 0;
     width: 100%; height: 100%;
     z-index: 0;
-    /* ✨ FIX: Prevents the browser from hijacking swipe gestures */
-    touch-action: none;
 }
 
 #overlay {
@@ -160,21 +158,9 @@ html, body {
     padding: 0 10px;
 }
 
-#scale-slider {
+#scale-slider, #rotate-slider {
     cursor: pointer;
 }
-
-/* ✨ NEW: Style for the rotation indicator text */
-#rotate-control {
-    color: white;
-    padding: 0 15px;
-    font-size: 16px;
-    font-weight: 600;
-}
-#rotate-control p {
-    margin: 0;
-}
-
 
 #exit-ar-btn {
     position: absolute;
@@ -186,23 +172,4 @@ html, body {
     font-size: 20px;
     pointer-events: auto;
     display: none;
-}
-
-#ARButton {
-    position: absolute !important;
-    bottom: 300px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    z-index: 2; /* Ensure it's on top of all other UI */
-    
-    /* Style to match other buttons */
-    padding: 12px 20px;
-    background-color: #007aff;
-    border: none;
-    border-radius: 20px;
-    color: white;
-    font-size: 16px;
-    font-weight: 600;
-    transition: background-color 0.2s;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
