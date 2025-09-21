@@ -58,6 +58,7 @@ let lastTapTime = 0;
 const doubleTapDelay = 300;
 let exitBtn;
 let initialPinchScale = 1;
+let isPinching = false; // ✨ 1. New flag to track pinch state
 
 init();
 animate();
@@ -142,14 +143,19 @@ function init() {
 
     renderer.xr.addEventListener('sessionend', cleanupScene);
 
-    // Setup Hammer.js for pinch gestures
+    // ✨ 2. MODIFIED: Updated Hammer.js setup
     const hammer = new Hammer(renderer.domElement);
     hammer.get('pinch').set({ enable: true });
 
-    hammer.on('pinchstart', () => {
+    hammer.on('pinchstart', (event) => {
         if (activeObject) {
+            isPinching = true;
             initialPinchScale = activeObject.scale.x;
         }
+    });
+    
+    hammer.on('pinchend pinchcancel', () => {
+        isPinching = false;
     });
 
     hammer.on('pinchmove', (event) => {
@@ -159,7 +165,8 @@ function init() {
             const oldBottomY = box.min.y;
 
             let newScale = initialPinchScale * event.scale;
-            newScale = Math.max(0.01, Math.min(1.75, newScale));
+            // Use the new requested scale limits
+            newScale = Math.max(0.005, Math.min(2.0, newScale));
 
             activeObject.scale.setScalar(newScale);
 
@@ -360,7 +367,8 @@ function render(timestamp, frame) {
                 reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
                 reticle.visible = !activeObject;
 
-                if (activeObject) {
+                // ✨ 3. MODIFIED: The object will only follow the reticle if we are NOT pinching
+                if (activeObject && reticle.visible && !isPinching) {
                     const box = new THREE.Box3().setFromObject(activeObject);
                     const offset = activeObject.position.y - box.min.y;
                     activeObject.position.setFromMatrixPosition(reticle.matrix);
