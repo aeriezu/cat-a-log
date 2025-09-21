@@ -87,6 +87,9 @@ function loadFurniturePalette() {
     
     // Load your single, large GLB file
     loader.load('low_poly_furnitures_full_bundle.glb', (gltf) => {
+        gltf.scene.traverse(function(child) {
+            console.log(child.name);
+        });
         // We do NOT add gltf.scene to our main scene.
         // It lives off-screen as our source for cloning.
 
