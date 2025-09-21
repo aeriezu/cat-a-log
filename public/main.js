@@ -107,9 +107,6 @@ function init() {
     renderer.domElement.addEventListener('touchend', onTouchEnd);
 
     // --- Action Button Listeners ---
-    
-    // ✨ REMOVED: Old rotate button listener is gone.
-
     document.getElementById('delete-btn').addEventListener('click', () => {
         if (activeObject) {
             scene.remove(activeObject);
@@ -134,12 +131,28 @@ function init() {
     const scaleSlider = document.getElementById('scale-slider');
     scaleSlider.addEventListener('input', (event) => {
         if (activeObject) {
+            // ✨ --- FIX STARTS HERE --- ✨
+            const box = new THREE.Box3();
+            
+            // 1. Get the position of the bottom edge *before* scaling
+            box.setFromObject(activeObject);
+            const oldBottomY = box.min.y;
+
+            // 2. Apply the new scale from the slider
             const newScale = parseFloat(event.target.value);
             activeObject.scale.setScalar(newScale);
+
+            // 3. Get the position of the bottom edge *after* scaling
+            box.setFromObject(activeObject);
+            const newBottomY = box.min.y;
+
+            // 4. Adjust the object's overall height to counteract the change,
+            //    keeping the bottom firmly in place.
+            activeObject.position.y += (oldBottomY - newBottomY);
+            // ✨ --- FIX ENDS HERE --- ✨
         }
     });
 
-    // ✨ NEW: Add event listener for the rotate slider
     const rotateSlider = document.getElementById('rotate-slider');
     rotateSlider.addEventListener('input', (event) => {
         if (activeObject) {
@@ -214,6 +227,11 @@ function onSelect() {
         const model = currentObjectToPlace.model.clone();
         model.scale.setScalar(currentObjectToPlace.scale || 1.0);
         
+        const box = new THREE.Box3().setFromObject(model);
+        const verticalOffset = -box.min.y;
+        model.position.setFromMatrixPosition(reticle.matrix);
+        model.position.y += verticalOffset;
+
         model.visible = true;
         scene.add(model);
         interactableObjects.push(model);
@@ -222,7 +240,6 @@ function onSelect() {
         setObjectOpacity(activeObject, 0.7);
         showActionMenu();
 
-        // ✨ NEW: Reset the rotate slider to 0 for the new object
         document.getElementById('rotate-slider').value = 0;
         
         const boxHelper = new THREE.Box3Helper(new THREE.Box3().setFromObject(model), 0xff0000);
