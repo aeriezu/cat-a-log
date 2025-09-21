@@ -106,7 +106,6 @@ function init() {
     renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
     renderer.domElement.addEventListener('touchend', onTouchEnd);
 
-    // --- Action Button Listeners ---
     document.getElementById('rotate-btn').addEventListener('click', () => {
         if (activeObject) {
             activeObject.rotation.y += Math.PI / 4;
@@ -134,7 +133,6 @@ function init() {
         }
     });
 
-    // ✨ NEW: Add event listener for the scale slider
     const scaleSlider = document.getElementById('scale-slider');
     scaleSlider.addEventListener('input', (event) => {
         if (activeObject) {
@@ -167,7 +165,6 @@ function loadFurniturePalette() {
                         model: furniturePalette[modelName],
                         scale: data.scale
                     };
-                    // ✨ NEW: Set the slider to the object's initial scale
                     scaleSlider.value = data.scale;
                     ignoreNextTap = true;
                     console.log(`Selected "${data.displayName}" for placement.`);
@@ -217,8 +214,6 @@ function onSelect() {
         activeObject = model;
         setObjectOpacity(activeObject, 0.7);
         showActionMenu();
-
-        // The render loop will now handle the initial positioning.
         
         const boxHelper = new THREE.Box3Helper(new THREE.Box3().setFromObject(model), 0xff0000);
         boxHelper.material.transparent = true;
@@ -349,12 +344,14 @@ function render(timestamp, frame) {
             
             reticle.material.visible = !activeObject;
 
-            // ✨ MODIFIED: This logic now runs every frame for the active object,
-            // ensuring it stays grounded even when its scale changes.
             if (activeObject && reticle.visible) {
-                // Recalculate the bounding box and offset each frame
                 const box = new THREE.Box3().setFromObject(activeObject);
-                const offset = -box.min.y;
+                
+                // ✨ --- THE FIX --- ✨
+                // This new calculation finds the object's height relative to its own center,
+                // breaking the feedback loop and stopping the flicker.
+                const offset = activeObject.position.y - box.min.y;
+                
                 activeObject.position.setFromMatrixPosition(reticle.matrix);
                 activeObject.position.y += offset;
             }
