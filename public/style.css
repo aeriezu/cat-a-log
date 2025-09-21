@@ -1,6 +1,29 @@
-canvas {
-    -webkit-user-select: none;   /* Safari */
-    -webkit-touch-callout: none; /* Disable iOS/Android long-press menu */
-    user-select: none;
-    touch-action: none;          /* Prevent browser gestures like pinch/scroll */
+/* Add these new styles to your existing CSS file */
+#furniture-menu {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
+    z-index: 10;
+}
+
+#furniture-menu button {
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #333;
+    color: white;
+    border: 1px solid #555;
+    border-radius: 15px;
+    cursor: pointer;
+}
+
+#furniture-menu button.selected {
+    /* Style for the button when in "placing mode" */
+    background-color: #007aff;
+    border-color: #007aff;
 }

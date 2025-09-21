@@ -1,53 +1,21 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-
-        <title>WebXR App</title>
-        <style>
-            body {
-                margin: 0;
-                overflow: hidden; /* Prevents scrollbars */
-                font-family: sans-serif;
-            }
-            canvas {
-                display: block;
-                /* Prevents the browser from trying to scroll or zoom when you touch the canvas */
-                touch-action: none; 
-            }
-            /* Simple info box to show what was selected */
-            #info {
-                position: absolute;
-                top: 15px;
-                left: 50%;
-                transform: translateX(-50%);
-                padding: 10px 20px;
-                background-color: rgba(0,0,0,0.6);
-                color: white;
-                border-radius: 20px;
-                text-align: center;
-                font-size: 14px;
-                pointer-events: none; /* Make it so the box doesn't block clicks */
-            }
-        </style>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-        <script type="importmap">
-            {
-                "imports": {
-                    "three": "https://cdn.jsdelivr.net/npm/three@v0.180.0/build/three.module.js",
-                    "three/addons/": "https://cdn.jsdelivr.net/npm/three@v0.180.0/examples/jsm/"
-                }
-            }
-        </script>
-    </head>
-
-    <body>
-        <div id="info">Tap a piece of furniture</div>
-        <!-- Container for XR DOM Overlay elements -->
-        <div id="xr-ui-container"></div>
-            <script type="module" src="/main.js"></script>
-        <div id="app-root"></div>
-    </body>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>WebXR Furniture Placer</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<link rel="stylesheet" href="style.css">
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js",
+					"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/"
+				}
+			}
+		</script>
+	</head>
+	<body>
+        <div id="furniture-menu"></div>
+		<script type="module" src="main.js"></script>
+	</body>
 </html>
