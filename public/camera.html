@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AR Furniture</title>
 
+    <script src="https://hammerjs.github.io/dist/hammer.min.js"></script>
+
     <script type="importmap">
     {
         "imports": {
@@ -26,7 +28,7 @@
         <div class="category-selector">
             <button class="category-button active" data-category="couches">🛋️</button>
             <button class="category-button" data-category="chairs">🪑</button>
-            <button class="category-button" data-category="beds">🛏️</button>
+            <button class="category-button" data-category="beds">🛌️</button>
             <button class="category-button" data-category="tables">🍽️</button>
             <button class="category-button" data-category="storage">📦</button>
             <button class="category-button" data-category="decor">💡</button>
@@ -40,15 +42,15 @@
 
         <div id="action-menu" style="display: none;">
             <button id="delete-btn">Delete</button>
-                <div class="slider-control">
-                    <label for="rotate-slider">Rotate</label>
-                    <input type="range" id="rotate-slider" min="0" max="6.28" step="0.01" value="0">
-                </div>
 
-                <div class="slider-control">
-                    <label for="scale-slider">Scale</label>
-                    <input type="range" id="scale-slider" min="0.01" max="1.75" step="0.01" value="0.05">
-                </div>
+            <div id="rotate-control">
+                <p>Swipe to Rotate</p>
+            </div>
+
+            <div class="slider-control">
+                <label for="scale-slider">Scale</label>
+                <input type="range" id="scale-slider" min="0.01" max="1.75" step="0.01" value="0.05">
+            </div>
             <button id="confirm-btn">Confirm</button>
         </div>
 

@@ -6,7 +6,7 @@ html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden; /* Prevents scrolling */
+    overflow: hidden;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     color: white;
 }
@@ -16,18 +16,19 @@ html, body {
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    z-index: 0; /* Base layer */
+    z-index: 0;
+    /* ✨ FIX: Prevents browser from intercepting gestures */
+    touch-action: none;
 }
 
 #overlay {
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    z-index: 1; /* UI layer is on top of AR */
-    pointer-events: none; /* Allows taps to pass through to the AR scene */
+    z-index: 1;
+    pointer-events: none;
 }
 
-/* Make UI elements clickable again */
 #overlay > * {
     pointer-events: auto;
 }
@@ -87,8 +88,6 @@ html, body {
     display: none;
 }
 
-/* --- In style.css, REPLACE the old ".item-button" rule with these --- */
-
 .item-image-button {
     width: 80px;
     height: 80px;
@@ -96,7 +95,7 @@ html, body {
     border: 2px solid rgba(255, 255, 255, 0.4);
     border-radius: 10px;
     cursor: pointer;
-    flex-shrink: 0; /* Prevents items from squishing */
+    flex-shrink: 0;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -113,8 +112,8 @@ html, body {
 .item-image-button img {
     max-width: 100%;
     max-height: 100%;
-    object-fit: contain; /* Ensures the image fits without being stretched */
-    pointer-events: none; /* Makes sure the click registers on the div, not the image */
+    object-fit: contain;
+    pointer-events: none;
 }
 
 /* Action Menu */
@@ -150,7 +149,7 @@ html, body {
     bottom: 20px !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
-    z-index: 2; /* Ensure it's on top of all other UI */
+    z-index: 2;
 }
 
 .slider-control {
@@ -161,9 +160,21 @@ html, body {
     padding: 0 10px;
 }
 
-#scale-slider, #rotate-slider {
+#scale-slider {
     cursor: pointer;
 }
+
+/* ✨ NEW: Style for the rotation indicator text */
+#rotate-control {
+    color: white;
+    padding: 0 15px;
+    font-size: 16px;
+    font-weight: 600;
+}
+#rotate-control p {
+    margin: 0;
+}
+
 
 #exit-ar-btn {
     position: absolute;
@@ -171,8 +182,8 @@ html, body {
     right: 20px;
     width: 45px;
     height: 45px;
-    border-radius: 50%; /* Make it circular */
+    border-radius: 50%;
     font-size: 20px;
     pointer-events: auto;
-    display: none; /* Hidden by default */
+    display: none;
 }
