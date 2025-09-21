@@ -137,8 +137,14 @@ function init() {
     const scaleSlider = document.getElementById('scale-slider');
     scaleSlider.addEventListener('input', (event) => {
         if (activeObject) {
+            const box = new THREE.Box3();
+            box.setFromObject(activeObject);
+            const oldBottomY = box.min.y;
             const newScale = parseFloat(event.target.value);
             activeObject.scale.setScalar(newScale);
+            box.setFromObject(activeObject);
+            const newBottomY = box.min.y;
+            activeObject.position.y += (oldBottomY - newBottomY);
         }
     });
 
@@ -347,26 +353,28 @@ function render(timestamp, frame) {
             const hit = hitTestResults.length > 0 ? hitTestResults[0] : null;
 
             // ✨ --- FIX STARTS HERE --- ✨
+            // This is the stable, corrected logic for both reticle visibility and object grounding.
 
-            // 1. The reticle is visible if we have a hit AND we are not in edit mode.
-            reticle.visible = hit && !activeObject;
-
-            // 2. We use the valid hit data to position BOTH the reticle and the active object.
             if (hit) {
-                const hitPose = hit.getPose(referenceSpace);
-                reticle.matrix.fromArray(hitPose.transform.matrix);
+                // We have a valid surface.
+                reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
+                
+                // Show the reticle ONLY if we are in placement mode (no active object).
+                reticle.visible = !activeObject;
 
-                // 3. The active object follows the hit test result, even if the reticle is visually hidden.
+                // If an object is active, update its position to follow the hit result.
                 if (activeObject) {
+                    // This logic is now stable and won't cause flickering.
                     const box = new THREE.Box3().setFromObject(activeObject);
-                    // This stable offset calculation prevents the flicker.
                     const offset = activeObject.position.y - box.min.y;
-                    
                     activeObject.position.setFromMatrixPosition(reticle.matrix);
                     activeObject.position.y += offset;
                 }
+            } else {
+                // If there's no surface found, hide the reticle.
+                reticle.visible = false;
             }
-
+            
             // ✨ --- FIX ENDS HERE --- ✨
         }
     }
