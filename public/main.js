@@ -57,7 +57,7 @@ let ignoreNextTap = false;
 let lastTapTime = 0;
 const doubleTapDelay = 300;
 let exitBtn;
-let isARReady = false; // ✨ NEW: Flag to prevent actions before the session is fully ready
+let isARReady = false;
 
 init();
 animate();
@@ -103,15 +103,51 @@ function init() {
     scene.add(reticle);
 
     window.addEventListener('resize', onWindowResize);
-    // ✨ NEW: Re-introducing touchstart for accurate double-tap raycasting
     renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: false });
 
-
     // --- Action Button Listeners ---
-    document.getElementById('delete-btn').addEventListener('click', () => { /* ... unchanged ... */ });
-    document.getElementById('confirm-btn').addEventListener('click', () => { /* ... unchanged ... */ });
+    document.getElementById('delete-btn').addEventListener('click', () => {
+        if (activeObject) {
+            scene.remove(activeObject);
+            if (activeObject.userData.boxHelper) {
+                scene.remove(activeObject.userData.boxHelper);
+            }
+            const index = interactableObjects.indexOf(activeObject);
+            if (index > -1) interactableObjects.splice(index, 1);
+            activeObject = null;
+            hideActionMenu();
+        }
+    });
+
+    document.getElementById('confirm-btn').addEventListener('click', () => {
+        if (activeObject) {
+            setObjectOpacity(activeObject, 1.0);
+            activeObject = null;
+            hideActionMenu();
+        }
+    });
+
     const scaleSlider = document.getElementById('scale-slider');
-    scaleSlider.addEventListener('input', (event) => { /* ... unchanged ... */ });
+    scaleSlider.addEventListener('input', (event) => {
+        if (activeObject) {
+            const box = new THREE.Box3();
+            box.setFromObject(activeObject);
+            const oldBottomY = box.min.y;
+            const newScale = parseFloat(event.target.value);
+            activeObject.scale.setScalar(newScale);
+            box.setFromObject(activeObject);
+            const newBottomY = box.min.y;
+            activeObject.position.y += (oldBottomY - newBottomY);
+        }
+    });
+
+    const rotateSlider = document.getElementById('rotate-slider');
+    rotateSlider.addEventListener('input', (event) => {
+        if (activeObject) {
+            const newRotation = parseFloat(event.target.value);
+            activeObject.rotation.y = newRotation;
+        }
+    });
     
     exitBtn = document.getElementById('exit-ar-btn');
     exitBtn.addEventListener('click', () => {
@@ -120,29 +156,62 @@ function init() {
     });
 
     renderer.xr.addEventListener('sessionend', cleanupScene);
-
-    const hammer = new Hammer(renderer.domElement);
-    hammer.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
-    const rotationAmount = Math.PI / 12;
-
-    hammer.on('swipeleft', () => {
-        if (activeObject) activeObject.rotation.y -= rotationAmount;
-    });
-
-    hammer.on('swiperight', () => {
-        if (activeObject) activeObject.rotation.y += rotationAmount;
-    });
 }
 
 // --- UI & PALETTE LOADING --- //
-function loadFurniturePalette() { /* ... unchanged ... */ }
+function loadFurniturePalette() {
+    const menuContainer = document.getElementById('furniture-menu');
+    const scaleSlider = document.getElementById('scale-slider');
+    
+    loader.load('low_poly_furnitures_full_bundle.glb', (gltf) => {
+        gltf.scene.traverse((child) => {
+            if (FURNITURE_DATA[child.name]) {
+                furniturePalette[child.name] = child;
+            }
+        });
+
+        for (const modelName in FURNITURE_DATA) {
+            if (furniturePalette[modelName]) {
+                const data = FURNITURE_DATA[modelName];
+                const button = document.createElement('button');
+                button.textContent = data.displayName;
+                button.onclick = () => {
+                    if (activeObject) return;
+                    currentObjectToPlace = {
+                        model: furniturePalette[modelName],
+                        scale: data.scale
+                    };
+                    scaleSlider.value = data.scale;
+                    ignoreNextTap = true;
+                };
+                menuContainer.appendChild(button);
+            }
+        }
+    });
+}
 
 // --- UI & INTERACTION HELPERS --- //
-function showActionMenu() { /* ... unchanged ... */ }
-function hideActionMenu() { /* ... unchanged ... */ }
-function setObjectOpacity(object, opacity) { /* ... unchanged ... */ }
+function showActionMenu() {
+    document.getElementById('action-menu').style.display = 'flex';
+    document.getElementById('furniture-menu').style.display = 'none';
+}
+
+function hideActionMenu() {
+    document.getElementById('action-menu').style.display = 'none';
+    document.getElementById('furniture-menu').style.display = 'flex';
+}
+
+function setObjectOpacity(object, opacity) {
+    object.traverse((child) => {
+        if (child.isMesh) {
+            child.material.transparent = true;
+            child.material.opacity = opacity;
+        }
+    });
+}
+
 function cleanupScene() {
-    isARReady = false; // ✨ Reset the ready flag
+    isARReady = false;
     const objectsToRemove = [...interactableObjects];
     objectsToRemove.forEach(object => {
         scene.remove(object);
@@ -150,7 +219,9 @@ function cleanupScene() {
             scene.remove(object.userData.boxHelper);
         }
     });
+    
     interactableObjects.length = 0;
+
     if (activeObject) {
         activeObject = null;
         hideActionMenu();
@@ -158,7 +229,6 @@ function cleanupScene() {
 }
 
 // --- PLACEMENT & INTERACTION --- //
-// ✨ MODIFIED: onSelect is now ONLY for placing new objects.
 function onSelect() {
     if (ignoreNextTap) {
         ignoreNextTap = false;
@@ -182,6 +252,8 @@ function onSelect() {
         setObjectOpacity(activeObject, 0.7);
         showActionMenu();
 
+        document.getElementById('rotate-slider').value = 0;
+        
         const boxHelper = new THREE.Box3Helper(new THREE.Box3().setFromObject(model), 0xff0000);
         boxHelper.material.transparent = true;
         boxHelper.material.opacity = 0;
@@ -199,7 +271,6 @@ function onSelect() {
     }
 }
 
-// ✨ NEW: onTouchStart is now ONLY for double-tapping existing objects.
 function onTouchStart(event) {
     if (activeObject || event.touches.length !== 1 || !renderer.xr.isPresenting) return;
 
@@ -233,9 +304,13 @@ function onTouchStart(event) {
     }
 }
 
-
 // --- RENDER LOOP & UTILS --- //
-function onWindowResize() { /* ... unchanged ... */ }
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
 function animate() {
     renderer.setAnimationLoop(render);
 }
@@ -257,7 +332,7 @@ function render(timestamp, frame) {
             session.requestReferenceSpace('viewer').then(refSpace => {
                 session.requestHitTestSource({ space: refSpace }).then(source => {
                     hitTestSource = source;
-                    isARReady = true; // ✨ The session is now fully ready for placement
+                    isARReady = true;
                 });
             });
             session.addEventListener('end', () => {
@@ -298,95 +373,4 @@ function render(timestamp, frame) {
     });
 
     renderer.render(scene, camera);
-}
-
-// --- FULL FUNCTIONS (UNCHANGED) --- //
-// These are included in full so you can copy the whole file.
-function getUnchangedFunctions() {
-    document.getElementById('delete-btn').addEventListener('click', () => {
-        if (activeObject) {
-            scene.remove(activeObject);
-            if (activeObject.userData.boxHelper) {
-                scene.remove(activeObject.userData.boxHelper);
-            }
-            const index = interactableObjects.indexOf(activeObject);
-            if (index > -1) interactableObjects.splice(index, 1);
-            activeObject = null;
-            hideActionMenu();
-        }
-    });
-    document.getElementById('confirm-btn').addEventListener('click', () => {
-        if (activeObject) {
-            setObjectOpacity(activeObject, 1.0);
-            activeObject = null;
-            hideActionMenu();
-        }
-    });
-    const scaleSlider = document.getElementById('scale-slider');
-    scaleSlider.addEventListener('input', (event) => {
-        if (activeObject) {
-            const box = new THREE.Box3();
-            box.setFromObject(activeObject);
-            const oldBottomY = box.min.y;
-            const newScale = parseFloat(event.target.value);
-            activeObject.scale.setScalar(newScale);
-            box.setFromObject(activeObject);
-            const newBottomY = box.min.y;
-            activeObject.position.y += (oldBottomY - newBottomY);
-        }
-    });
-    exitBtn = document.getElementById('exit-ar-btn');
-    exitBtn.addEventListener('click', () => {
-        const session = renderer.xr.getSession();
-        if (session) session.end();
-    });
-    loadFurniturePalette = function() {
-        const menuContainer = document.getElementById('furniture-menu');
-        const scaleSlider = document.getElementById('scale-slider');
-        loader.load('low_poly_furnitures_full_bundle.glb', (gltf) => {
-            gltf.scene.traverse((child) => {
-                if (FURNITURE_DATA[child.name]) {
-                    furniturePalette[child.name] = child;
-                }
-            });
-            for (const modelName in FURNITURE_DATA) {
-                if (furniturePalette[modelName]) {
-                    const data = FURNITURE_DATA[modelName];
-                    const button = document.createElement('button');
-                    button.textContent = data.displayName;
-                    button.onclick = () => {
-                        if (activeObject) return;
-                        currentObjectToPlace = {
-                            model: furniturePalette[modelName],
-                            scale: data.scale
-                        };
-                        scaleSlider.value = data.scale;
-                        ignoreNextTap = true;
-                    };
-                    menuContainer.appendChild(button);
-                }
-            }
-        });
-    }
-    showActionMenu = function() {
-        document.getElementById('action-menu').style.display = 'flex';
-        document.getElementById('furniture-menu').style.display = 'none';
-    }
-    hideActionMenu = function() {
-        document.getElementById('action-menu').style.display = 'none';
-        document.getElementById('furniture-menu').style.display = 'flex';
-    }
-    setObjectOpacity = function(object, opacity) {
-        object.traverse((child) => {
-            if (child.isMesh) {
-                child.material.transparent = true;
-                child.material.opacity = opacity;
-            }
-        });
-    }
-    onWindowResize = function() {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    }
 }
