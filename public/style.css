@@ -1,74 +1,54 @@
+/* Make the body fill the screen without scrolling */
 body {
     margin: 0;
+    overflow: hidden;
     font-family: sans-serif;
-    overflow: hidden; 
-    /* Add a background to see the box clearly */
-    background-color: #333;
 }
 
-#video-background {
+/* Make the AR canvas the background, covering the whole screen */
+#ar-container {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover; /* This makes the video cover the whole screen */
-    z-index: -1; /* Place it behind everything else */
+    right: 0;
+    bottom: 0;
+    z-index: -1; /* Place it behind the UI */
 }
 
-#ar-container {
-    /* Center the box */
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    
-    /* Set the size of the box */
-    width: 90vw;
-    height: 70vh;
-    
-    /* Style the box */
-    border: 2px solid white;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    overflow: hidden; /* Important: The canvas will be inside this */
-}
-
-/* Canvas now lives inside the container */
-canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-    touch-action: none; 
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
+/* Style the menu to be a neat bar at the bottom */
 #furniture-menu {
     position: absolute;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 10px;
+    gap: 15px; /* Spacing between buttons */
+    background-color: rgba(0, 0, 0, 0.25);
     padding: 10px;
-    background-color: rgba(0, 0, 0, 0.5);
-    border-radius: 20px;
-    z-index: 10;
+    border-radius: 30px;
+    backdrop-filter: blur(10px); /* Frosted glass effect */
 }
 
+/* Style for the furniture buttons */
 #furniture-menu button {
-    padding: 10px 15px;
+    padding: 12px 20px;
     font-size: 16px;
-    background-color: #333;
+    background-color: rgba(255, 255, 255, 0.2);
     color: white;
-    border: 1px solid #555;
-    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 20px;
     cursor: pointer;
+    transition: background-color 0.2s;
 }
 
-#furniture-menu button.selected {
-    background-color: #007aff;
-    border-color: #007aff;
+#furniture-menu button:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Style for the default "Enter AR" button */
+#ARButton {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    z-index: 100;
 }
