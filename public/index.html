@@ -1,40 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-g">
-        <title>AR Furniture Placer</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-        <link rel="stylesheet" href="style.css">
-        <script type="importmap">
-        {
-            "imports": {
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Furniture</title>
+
+    <script type="importmap">
+    {
+        "imports": {
             "three": "https://cdn.jsdelivr.net/npm/three/build/three.module.js",
             "three/addons/": "https://cdn.jsdelivr.net/npm/three/examples/jsm/"
-            }
         }
-        </script>
-    </head>
-    <body>
-        <div id="overlay">
-            <div id="furniture-menu"></div>
-            
-            <div id="action-menu">
-                <div class="slider-control">
-                    <label for="rotate-slider">Rotate</label>
-                    <input type="range" id="rotate-slider" min="0" max="6.28" step="0.01" value="0">
-                </div>
-
-                <div class="slider-control">
-                    <label for="scale-slider">Scale</label>
-                    <input type="range" id="scale-slider" min="0.05" max="1.4" step="0.01" value="0.05">
-                </div>
-                
-                <button id="delete-btn">Delete</button>
-                <button id="confirm-btn">Place</button>
-            </div>
-        </div>
+    }
+    </script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="ar-container"></div>
+    <div id="overlay">
         
-        <div id="ar-container"></div>
-        <script type="module" src="main.js"></script>
-    </body>
+        <div id="item-track-container">
+            <div id="item-track">
+                </div>
+        </div>
+
+        <div id="action-menu" style="display: none;">
+            <button id="delete-btn">Delete</button>
+            <input type="range" id="scale-slider" min="0.01" max="0.2" step="0.005">
+            <input type="range" id="rotate-slider" min="-3.14" max="3.14" step="0.01">
+            <button id="confirm-btn">Confirm</button>
+        </div>
+
+    </div>
+    <script type="module" src="main.js"></script>
+</body>
 </html>
