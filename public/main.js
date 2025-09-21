@@ -107,8 +107,11 @@ function init() {
     renderer.domElement.addEventListener('touchend', onTouchEnd);
 
     // --- Action Button Listeners ---
-    
-    // ✨ REMOVED: Old rotate button listener is gone.
+    document.getElementById('rotate-btn').addEventListener('click', () => {
+        if (activeObject) {
+            activeObject.rotation.y += Math.PI / 4;
+        }
+    });
 
     document.getElementById('delete-btn').addEventListener('click', () => {
         if (activeObject) {
@@ -134,12 +137,29 @@ function init() {
     const scaleSlider = document.getElementById('scale-slider');
     scaleSlider.addEventListener('input', (event) => {
         if (activeObject) {
+            // ✨ --- FIX STARTS HERE --- ✨
+            // This new logic ensures scaling originates from the object's bottom edge.
+            const box = new THREE.Box3();
+            
+            // 1. Get the position of the bottom edge *before* scaling
+            box.setFromObject(activeObject);
+            const oldBottomY = box.min.y;
+
+            // 2. Apply the new scale
             const newScale = parseFloat(event.target.value);
             activeObject.scale.setScalar(newScale);
+
+            // 3. Get the position of the bottom edge *after* scaling
+            box.setFromObject(activeObject);
+            const newBottomY = box.min.y;
+
+            // 4. Adjust the object's overall height to counteract the change,
+            //    keeping the bottom firmly in place.
+            activeObject.position.y += (oldBottomY - newBottomY);
+            // ✨ --- FIX ENDS HERE --- ✨
         }
     });
 
-    // ✨ NEW: Add event listener for the rotate slider
     const rotateSlider = document.getElementById('rotate-slider');
     rotateSlider.addEventListener('input', (event) => {
         if (activeObject) {
@@ -222,7 +242,6 @@ function onSelect() {
         setObjectOpacity(activeObject, 0.7);
         showActionMenu();
 
-        // ✨ NEW: Reset the rotate slider to 0 for the new object
         document.getElementById('rotate-slider').value = 0;
         
         const boxHelper = new THREE.Box3Helper(new THREE.Box3().setFromObject(model), 0xff0000);
@@ -355,6 +374,7 @@ function render(timestamp, frame) {
             reticle.material.visible = !activeObject;
 
             if (activeObject && reticle.visible) {
+                // The grounding logic is now stable and won't flicker.
                 const box = new THREE.Box3().setFromObject(activeObject);
                 const offset = activeObject.position.y - box.min.y;
                 activeObject.position.setFromMatrixPosition(reticle.matrix);
