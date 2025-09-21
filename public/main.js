@@ -125,7 +125,6 @@ function init() {
         }
     });
 
-    // ✨ The scale slider listener is restored
     const scaleSlider = document.getElementById('scale-slider');
     scaleSlider.addEventListener('input', (event) => {
         if (activeObject) {
@@ -139,7 +138,7 @@ function init() {
             activeObject.position.y += (oldBottomY - newBottomY);
         }
     });
-
+    
     const rotateSlider = document.getElementById('rotate-slider');
     rotateSlider.addEventListener('input', (event) => {
         if (activeObject) {
@@ -298,8 +297,6 @@ function onSelect(event) {
     }
 }
 
-// These functions were removed for the simplified single-tap model, but are kept here.
-// You could re-add dragging logic for placed (non-active) objects here if desired.
 function onTouchStart(event) {}
 function onTouchMove(event) {}
 function onTouchEnd() {}
@@ -348,10 +345,13 @@ function render(timestamp, frame) {
             const hit = hitTestResults.length > 0 ? hitTestResults[0] : null;
 
             if (hit) {
-                reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
+                // The reticle is only visible when we are in placement mode (no active object)
                 reticle.visible = !activeObject;
+                reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
 
+                // The active object follows the hit test result
                 if (activeObject) {
+                    // This is the stable grounding logic that prevents flickering
                     const box = new THREE.Box3().setFromObject(activeObject);
                     const offset = activeObject.position.y - box.min.y;
                     activeObject.position.setFromMatrixPosition(reticle.matrix);

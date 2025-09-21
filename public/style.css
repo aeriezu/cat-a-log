@@ -13,7 +13,7 @@ body {
     right: 0;
     bottom: 0;
     z-index: -1;
-    /* ✨ NEW: Prevents the browser from zooming the page on pinch */
+    /* ✨ FIX: Prevents the browser from hijacking pinch/swipe gestures */
     touch-action: none;
 }
 
@@ -79,7 +79,7 @@ body {
     padding: 0 10px;
 }
 
-#rotate-slider {
+#scale-slider, #rotate-slider {
     cursor: pointer;
 }
 
