@@ -6,19 +6,42 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // ------------------- DATA CONFIGURATION ------------------------- //
 // ---------------------------------------------------------------- //
 
-const GLOBAL_SCALE = 0.55;
-
+// We now define a unique scale for each item to fix size inconsistencies.
+// You can now fine-tune the size of each piece of furniture individually.
 const FURNITURE_DATA = {
-    'Object_4':   { displayName: 'Chair' },
-    'Object_6':   { displayName: 'Stool' },
-    'Object_8':   { displayName: 'Side Table' },
-    'Object_16':  { displayName: 'Potted Plant' },
-    'Object_20':  { displayName: 'Cabinet' },
-    'Object_44':  { displayName: 'Coffee Table' },
-    'Object_48':  { displayName: 'Bookshelf' },
-    'Object_60':  { displayName: 'Floor Lamp' },
-    'Object_62':  { displayName: 'Sofa' },
-    'Object_68':  { displayName: 'Dining Table' }
+    'Object_4':   { displayName: 'Item 4', scale: 0.3 },
+    'Object_6':   { displayName: 'Item 6', scale: 0.3 },
+    'Object_8':   { displayName: 'Item 8', scale: 0.3 },
+    'Object_10':  { displayName: 'Item 10', scale: 0.3 },
+    'Object_12':  { displayName: 'Item 12', scale: 0.3 },
+    'Object_14':  { displayName: 'Item 14', scale: 0.3 },
+    'Object_16':  { displayName: 'Item 16', scale: 0.3 },
+    'Object_18':  { displayName: 'Item 18', scale: 0.3 },
+    'Object_20':  { displayName: 'Item 20', scale: 0.3 },
+    'Object_22':  { displayName: 'Item 22', scale: 0.3 },
+    'Object_24':  { displayName: 'Item 24', scale: 0.3 },
+    'Object_26':  { displayName: 'Item 26', scale: 0.3 },
+    'Object_28':  { displayName: 'Item 28', scale: 0.3 },
+    'Object_30':  { displayName: 'Item 30', scale: 0.3 },
+    'Object_32':  { displayName: 'Item 32', scale: 0.3 },
+    'Object_34':  { displayName: 'Item 34', scale: 0.3 },
+    'Object_36':  { displayName: 'Item 36', scale: 0.3 },
+    'Object_38':  { displayName: 'Item 38', scale: 0.3 },
+    'Object_40':  { displayName: 'Item 40', scale: 0.3 },
+    'Object_42':  { displayName: 'Item 42', scale: 0.3 },
+    'Object_44':  { displayName: 'Item 44', scale: 0.3 },
+    'Object_46':  { displayName: 'Item 46', scale: 0.3 },
+    'Object_48':  { displayName: 'Item 48', scale: 0.3 },
+    'Object_50':  { displayName: 'Item 50', scale: 0.3 },
+    'Object_52':  { displayName: 'Item 52', scale: 0.3 },
+    'Object_54':  { displayName: 'Item 54', scale: 0.3 },
+    'Object_56':  { displayName: 'Item 56', scale: 0.3 },
+    'Object_58':  { displayName: 'Item 58', scale: 0.3 },
+    'Object_60':  { displayName: 'Item 60', scale: 0.3 },
+    'Object_62':  { displayName: 'Item 62', scale: 0.3 },
+    'Object_64':  { displayName: 'Item 64', scale: 0.3 },
+    'Object_66':  { displayName: 'Item 66', scale: 0.3 },
+    'Object_68':  { displayName: 'Item 68', scale: 0.3 }
 };
 
 
@@ -115,7 +138,11 @@ function loadFurniturePalette() {
                 const button = document.createElement('button');
                 button.textContent = data.displayName;
                 button.onclick = () => {
-                    currentObjectToPlace = furniturePalette[modelName];
+                    // We now pass the specific scale for this item
+                    currentObjectToPlace = {
+                        model: furniturePalette[modelName],
+                        scale: data.scale
+                    };
                     ignoreNextTap = true;
                     console.log(`Selected "${data.displayName}" for placement.`);
                 };
@@ -138,23 +165,15 @@ function onSelect() {
     }
 
     if (reticle.visible && currentObjectToPlace) {
-        const model = currentObjectToPlace.clone();
+        const model = currentObjectToPlace.model.clone();
         
-        // Apply the global scale first, as this affects the model's size
-        model.scale.setScalar(GLOBAL_SCALE);
+        // Use the specific scale from the selected object
+        model.scale.setScalar(currentObjectToPlace.scale || 1.0);
         
-        // --- ✨ NEW GROUNDING LOGIC ✨ ---
-        // 1. Create a bounding box to measure the model *after* it has been scaled.
         const box = new THREE.Box3().setFromObject(model);
-        
-        // 2. Calculate the distance from the model's origin to its bottom edge.
-        // For a centered model, `box.min.y` will be negative, so this results in a positive offset.
         const verticalOffset = -box.min.y;
-
-        // 3. Position the model using the reticle, then apply the vertical offset.
         model.position.setFromMatrixPosition(reticle.matrix);
         model.position.y += verticalOffset;
-        // --- End of New Logic ---
 
         model.visible = true;
         scene.add(model);
