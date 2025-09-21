@@ -137,26 +137,8 @@ function init() {
     const scaleSlider = document.getElementById('scale-slider');
     scaleSlider.addEventListener('input', (event) => {
         if (activeObject) {
-            // ✨ --- FIX STARTS HERE --- ✨
-            // This new logic ensures scaling originates from the object's bottom edge.
-            const box = new THREE.Box3();
-            
-            // 1. Get the position of the bottom edge *before* scaling
-            box.setFromObject(activeObject);
-            const oldBottomY = box.min.y;
-
-            // 2. Apply the new scale
             const newScale = parseFloat(event.target.value);
             activeObject.scale.setScalar(newScale);
-
-            // 3. Get the position of the bottom edge *after* scaling
-            box.setFromObject(activeObject);
-            const newBottomY = box.min.y;
-
-            // 4. Adjust the object's overall height to counteract the change,
-            //    keeping the bottom firmly in place.
-            activeObject.position.y += (oldBottomY - newBottomY);
-            // ✨ --- FIX ENDS HERE --- ✨
         }
     });
 
@@ -362,24 +344,30 @@ function render(timestamp, frame) {
 
         if (hitTestSource) {
             const hitTestResults = frame.getHitTestResults(hitTestSource);
-            
-            if (hitTestResults.length > 0) {
-                const hit = hitTestResults[0];
-                reticle.visible = true;
-                reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
-            } else {
-                reticle.visible = false;
-            }
-            
-            reticle.material.visible = !activeObject;
+            const hit = hitTestResults.length > 0 ? hitTestResults[0] : null;
 
-            if (activeObject && reticle.visible) {
-                // The grounding logic is now stable and won't flicker.
-                const box = new THREE.Box3().setFromObject(activeObject);
-                const offset = activeObject.position.y - box.min.y;
-                activeObject.position.setFromMatrixPosition(reticle.matrix);
-                activeObject.position.y += offset;
+            // ✨ --- FIX STARTS HERE --- ✨
+
+            // 1. The reticle is visible if we have a hit AND we are not in edit mode.
+            reticle.visible = hit && !activeObject;
+
+            // 2. We use the valid hit data to position BOTH the reticle and the active object.
+            if (hit) {
+                const hitPose = hit.getPose(referenceSpace);
+                reticle.matrix.fromArray(hitPose.transform.matrix);
+
+                // 3. The active object follows the hit test result, even if the reticle is visually hidden.
+                if (activeObject) {
+                    const box = new THREE.Box3().setFromObject(activeObject);
+                    // This stable offset calculation prevents the flicker.
+                    const offset = activeObject.position.y - box.min.y;
+                    
+                    activeObject.position.setFromMatrixPosition(reticle.matrix);
+                    activeObject.position.y += offset;
+                }
             }
+
+            // ✨ --- FIX ENDS HERE --- ✨
         }
     }
 
