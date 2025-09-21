@@ -57,8 +57,6 @@ let ignoreNextTap = false;
 let lastTapTime = 0;
 const doubleTapDelay = 300;
 let exitBtn;
-let initialPinchScale = 1;
-let isPinching = false; // ✨ 1. New flag to track pinch state
 
 init();
 animate();
@@ -127,6 +125,21 @@ function init() {
         }
     });
 
+    // ✨ The scale slider listener is restored
+    const scaleSlider = document.getElementById('scale-slider');
+    scaleSlider.addEventListener('input', (event) => {
+        if (activeObject) {
+            const box = new THREE.Box3();
+            box.setFromObject(activeObject);
+            const oldBottomY = box.min.y;
+            const newScale = parseFloat(event.target.value);
+            activeObject.scale.setScalar(newScale);
+            box.setFromObject(activeObject);
+            const newBottomY = box.min.y;
+            activeObject.position.y += (oldBottomY - newBottomY);
+        }
+    });
+
     const rotateSlider = document.getElementById('rotate-slider');
     rotateSlider.addEventListener('input', (event) => {
         if (activeObject) {
@@ -142,45 +155,12 @@ function init() {
     });
 
     renderer.xr.addEventListener('sessionend', cleanupScene);
-
-    // ✨ 2. MODIFIED: Updated Hammer.js setup
-    const hammer = new Hammer(renderer.domElement);
-    hammer.get('pinch').set({ enable: true });
-
-    hammer.on('pinchstart', (event) => {
-        if (activeObject) {
-            isPinching = true;
-            initialPinchScale = activeObject.scale.x;
-        }
-    });
-    
-    hammer.on('pinchend pinchcancel', () => {
-        isPinching = false;
-    });
-
-    hammer.on('pinchmove', (event) => {
-        if (activeObject) {
-            const box = new THREE.Box3();
-            box.setFromObject(activeObject);
-            const oldBottomY = box.min.y;
-
-            let newScale = initialPinchScale * event.scale;
-            // Use the new requested scale limits
-            newScale = Math.max(0.005, Math.min(2.0, newScale));
-
-            activeObject.scale.setScalar(newScale);
-
-            box.setFromObject(activeObject);
-            const newBottomY = box.min.y;
-
-            activeObject.position.y += (oldBottomY - newBottomY);
-        }
-    });
 }
 
 // --- UI & PALETTE LOADING --- //
 function loadFurniturePalette() {
     const menuContainer = document.getElementById('furniture-menu');
+    const scaleSlider = document.getElementById('scale-slider');
     
     loader.load('low_poly_furnitures_full_bundle.glb', (gltf) => {
         gltf.scene.traverse((child) => {
@@ -200,6 +180,7 @@ function loadFurniturePalette() {
                         model: furniturePalette[modelName],
                         scale: data.scale
                     };
+                    scaleSlider.value = data.scale;
                     ignoreNextTap = true;
                 };
                 menuContainer.appendChild(button);
@@ -309,6 +290,7 @@ function onSelect(event) {
             activeObject = tappedObject;
             setObjectOpacity(activeObject, 0.7);
             
+            document.getElementById('scale-slider').value = activeObject.scale.x;
             document.getElementById('rotate-slider').value = activeObject.rotation.y;
             
             showActionMenu();
@@ -316,6 +298,8 @@ function onSelect(event) {
     }
 }
 
+// These functions were removed for the simplified single-tap model, but are kept here.
+// You could re-add dragging logic for placed (non-active) objects here if desired.
 function onTouchStart(event) {}
 function onTouchMove(event) {}
 function onTouchEnd() {}
@@ -367,8 +351,7 @@ function render(timestamp, frame) {
                 reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
                 reticle.visible = !activeObject;
 
-                // ✨ 3. MODIFIED: The object will only follow the reticle if we are NOT pinching
-                if (activeObject && reticle.visible && !isPinching) {
+                if (activeObject) {
                     const box = new THREE.Box3().setFromObject(activeObject);
                     const offset = activeObject.position.y - box.min.y;
                     activeObject.position.setFromMatrixPosition(reticle.matrix);

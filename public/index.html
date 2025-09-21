@@ -5,9 +5,6 @@
         <title>AR Furniture Placer</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
         <link rel="stylesheet" href="style.css">
-        
-        <script src="https://hammerjs.github.io/dist/hammer.min.js"></script>
-
         <script type="importmap">
         {
             "imports": {
@@ -26,6 +23,11 @@
                 <div class="slider-control">
                     <label for="rotate-slider">Rotate</label>
                     <input type="range" id="rotate-slider" min="0" max="6.28" step="0.01" value="0">
+                </div>
+
+                <div class="slider-control">
+                    <label for="scale-slider">Scale</label>
+                    <input type="range" id="scale-slider" min="0.005" max="2.0" step="0.005" value="0.05">
                 </div>
                 
                 <button id="delete-btn">Delete</button>
