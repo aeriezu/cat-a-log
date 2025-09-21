@@ -2,6 +2,27 @@ import * as THREE from 'three';
 import { ARButton } from 'three/addons/webxr/ARButton.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
+// ---------------------------------------------------------------- //
+// ------------------- DATA CONFIGURATION ------------------------- //
+// ---------------------------------------------------------------- //
+
+// This is the data configuration based on the names from your .glb file.
+// Feel free to change the `displayName` and `scale` for each item.
+const FURNITURE_DATA = {
+    'Object_4':   { displayName: 'Chair', scale: 1.0 },
+    'Object_6':   { displayName: 'Stool', scale: 1.0 },
+    'Object_8':   { displayName: 'Side Table', scale: 0.8 },
+    'Object_16':  { displayName: 'Potted Plant', scale: 1.0 },
+    'Object_20':  { displayName: 'Cabinet', scale: 1.2 },
+    'Object_44':  { displayName: 'Coffee Table', scale: 1.0 },
+    'Object_48':  { displayName: 'Bookshelf', scale: 1.2 },
+    'Object_60':  { displayName: 'Floor Lamp', scale: 1.1 },
+    'Object_62':  { displayName: 'Sofa', scale: 1.2 },
+    'Object_68':  { displayName: 'Dining Table', scale: 1.0 }
+    // Add more entries here for any other furniture you want to include.
+};
+
+
 // --- CORE THREE.JS & XR COMPONENTS --- //
 let camera, scene, renderer;
 let controller;
@@ -13,15 +34,13 @@ let hitTestSourceRequested = false;
 // --- OBJECT & INTERACTION STATE --- //
 const interactableObjects = []; // Stores placed furniture
 const loader = new GLTFLoader();
-
-// This object will hold our "palette" of loaded furniture
-const furniturePalette = {}; 
-
-let currentObjectToPlace = null; // A REFERENCE to an object in the palette
-let selectedPiece = null;      // The piece currently being dragged
+const furniturePalette = {}; // This will store the actual THREE.Object3D models
+let currentObjectToPlace = null;
+let selectedPiece = null;
 let isDragging = false;
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
+
 
 init();
 animate();
@@ -32,7 +51,6 @@ animate();
 
 function init() {
     const arContainer = document.getElementById('ar-container');
-
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
@@ -85,35 +103,31 @@ function init() {
 function loadFurniturePalette() {
     const menuContainer = document.getElementById('furniture-menu');
     
-    // Load your single, large GLB file
     loader.load('low_poly_furnitures_full_bundle.glb', (gltf) => {
-        gltf.scene.traverse(function(child) {
-            console.log(child.name);
-        });
-        // We do NOT add gltf.scene to our main scene.
-        // It lives off-screen as our source for cloning.
-
-        gltf.scene.children.forEach((model, index) => {
-            // Make sure each model has a unique name
-            const modelName = model.name || `Item ${index + 1}`;
-            model.name = modelName;
-
-            // Store the model in our palette object
-            furniturePalette[modelName] = model;
-
-            // Now, create a button for this model
-            const button = document.createElement('button');
-            button.textContent = modelName;
-            button.onclick = () => {
-                // When clicked, set this model as the one to be placed.
-                // We're setting a REFERENCE to the model in the palette.
-                currentObjectToPlace = furniturePalette[modelName];
-                console.log(`Selected "${modelName}" for placement.`);
-            };
-            menuContainer.appendChild(button);
+        // Search the loaded scene for objects defined in FURNITURE_DATA
+        gltf.scene.traverse((child) => {
+            if (FURNITURE_DATA[child.name]) {
+                furniturePalette[child.name] = child;
+            }
         });
 
-        console.log("Furniture palette loaded!", furniturePalette);
+        // Now, create buttons based on our FURNITURE_DATA, not the file structure
+        for (const modelName in FURNITURE_DATA) {
+            if (furniturePalette[modelName]) { // Ensure the model was actually found
+                const data = FURNITURE_DATA[modelName];
+                const button = document.createElement('button');
+                button.textContent = data.displayName; // Use the pretty name for the button
+                button.onclick = () => {
+                    currentObjectToPlace = {
+                        model: furniturePalette[modelName],
+                        scale: data.scale
+                    };
+                    console.log(`Selected "${data.displayName}" for placement.`);
+                };
+                menuContainer.appendChild(button);
+            }
+        }
+        console.log("Furniture palette processed!", furniturePalette);
     });
 }
 
@@ -123,16 +137,13 @@ function loadFurniturePalette() {
 // ---------------------------------------------------------------- //
 
 function onSelect() {
-    // Called when the user taps the screen in AR mode.
     if (reticle.visible && currentObjectToPlace) {
-        // **IMPORTANT**: We CLONE the object from the palette.
-        const model = currentObjectToPlace.clone();
-
+        const model = currentObjectToPlace.model.clone();
+        model.scale.setScalar(currentObjectToPlace.scale || 1.0); // Apply the scale from our data
         model.position.setFromMatrixPosition(reticle.matrix);
-        model.visible = true; // Make sure it's visible
+        model.visible = true;
         scene.add(model);
 
-        // Enable shadows for all meshes in the clone
         model.traverse(child => {
             if (child.isMesh) {
                 child.castShadow = true;
@@ -140,7 +151,6 @@ function onSelect() {
             }
         });
 
-        // Setup for collisions
         const boxHelper = new THREE.Box3Helper(new THREE.Box3().setFromObject(model), 0xff0000);
         boxHelper.material.transparent = true;
         boxHelper.material.opacity = 0;
@@ -149,7 +159,7 @@ function onSelect() {
         model.userData.isColliding = false;
 
         interactableObjects.push(model);
-        currentObjectToPlace = null; // Clear selection after placing
+        currentObjectToPlace = null;
     }
 }
 
@@ -157,7 +167,6 @@ function onTouchStart(event) {
     if (event.touches.length !== 1 || !renderer.xr.isPresenting) return;
     const touch = event.touches[0];
 
-    // Check if we are touching an existing object to start dragging it
     pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
     pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
@@ -166,7 +175,6 @@ function onTouchStart(event) {
     if (intersects.length > 0) {
         isDragging = true;
         selectedPiece = intersects[0].object;
-        // Traverse up to find the top-level group/object
         while (selectedPiece.parent && !interactableObjects.includes(selectedPiece.parent)) {
             selectedPiece = selectedPiece.parent;
         }
@@ -182,15 +190,11 @@ function onTouchMove(event) {
     pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
 
-    // Project the touch onto a plane at the object's current height
     const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -selectedPiece.position.y);
     const intersectionPoint = new THREE.Vector3();
 
     if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-        // This is where the object *wants* to go
         const potentialPosition = intersectionPoint;
-
-        // Check for collisions BEFORE moving the object
         if (!updateCollisions(selectedPiece, potentialPosition)) {
             selectedPiece.position.copy(potentialPosition);
         }
@@ -200,9 +204,7 @@ function onTouchMove(event) {
 function onTouchEnd() {
     isDragging = false;
     if (selectedPiece) {
-        // When we let go, reset the collision state
         selectedPiece.userData.isColliding = false;
-        // Also reset the collision state of all other objects for a clean slate
         interactableObjects.forEach(obj => {
             if (obj !== selectedPiece) obj.userData.isColliding = false;
         });
@@ -214,10 +216,10 @@ function updateCollisions(targetObject, potentialPosition) {
     let collisionDetected = false;
     const testBox = new THREE.Box3().setFromObject(targetObject);
     const displacement = new THREE.Vector3().subVectors(potentialPosition, targetObject.position);
-    testBox.translate(displacement); // Move the test box to the potential position
+    testBox.translate(displacement);
 
     for (const otherObject of interactableObjects) {
-        if (otherObject === targetObject) continue; // Don't check against self
+        if (otherObject === targetObject) continue;
 
         const otherBox = new THREE.Box3().setFromObject(otherObject);
         if (testBox.intersectsBox(otherBox)) {
@@ -246,7 +248,7 @@ function animate() {
 }
 
 function render(timestamp, frame) {
-    if (frame) { // --- AR Session is Active ---
+    if (frame) {
         const referenceSpace = renderer.xr.getReferenceSpace();
         const session = renderer.xr.getSession();
 
@@ -275,13 +277,11 @@ function render(timestamp, frame) {
         }
     }
 
-    // Update collision box helpers
     interactableObjects.forEach(object => {
         const helper = object.userData.boxHelper;
         if (helper) {
             helper.box.setFromObject(object);
             const targetOpacity = object.userData.isColliding ? 0.75 : 0.0;
-            // Smoothly fade the helper's opacity
             helper.material.opacity += (targetOpacity - helper.material.opacity) * 0.1;
         }
     });
