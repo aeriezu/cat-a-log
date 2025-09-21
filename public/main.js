@@ -57,6 +57,8 @@ let isDragging = false;
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let ignoreNextTap = false;
+let lastTapTime = 0;
+const doubleTapDelay = 300; // milliseconds
 
 init();
 animate();
@@ -131,25 +133,14 @@ function init() {
     const scaleSlider = document.getElementById('scale-slider');
     scaleSlider.addEventListener('input', (event) => {
         if (activeObject) {
-            // ✨ --- FIX STARTS HERE --- ✨
             const box = new THREE.Box3();
-            
-            // 1. Get the position of the bottom edge *before* scaling
             box.setFromObject(activeObject);
             const oldBottomY = box.min.y;
-
-            // 2. Apply the new scale from the slider
             const newScale = parseFloat(event.target.value);
             activeObject.scale.setScalar(newScale);
-
-            // 3. Get the position of the bottom edge *after* scaling
             box.setFromObject(activeObject);
             const newBottomY = box.min.y;
-
-            // 4. Adjust the object's overall height to counteract the change,
-            //    keeping the bottom firmly in place.
             activeObject.position.y += (oldBottomY - newBottomY);
-            // ✨ --- FIX ENDS HERE --- ✨
         }
     });
 
@@ -253,27 +244,49 @@ function onSelect() {
     }
 }
 
+// ✨ --- MODIFIED: This function has been refactored for clarity and debugging --- ✨
 function onTouchStart(event) {
-    if (activeObject) return;
+    // Ignore taps if an object is already active, or if it's not a single touch
+    if (activeObject || event.touches.length !== 1 || !renderer.xr.isPresenting) return;
 
-    if (event.touches.length !== 1 || !renderer.xr.isPresenting) return;
     const touch = event.touches[0];
-
     pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
     pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
-
     const intersects = raycaster.intersectObjects(interactableObjects, true);
-    if (intersects.length > 0) {
-        if (ignoreNextTap) {
-            ignoreNextTap = false;
-            return;
-        }
+
+    // If the user didn't tap on any object, do nothing.
+    if (intersects.length === 0) return;
+
+    // --- Tap Timing Logic ---
+    const currentTime = new Date().getTime();
+    const timeSinceLastTap = currentTime - lastTapTime;
+    lastTapTime = currentTime;
+    console.log(`Tap detected on an object. Time since last: ${timeSinceLastTap}ms`);
+
+    // Find the top-level parent of the tapped object
+    let tappedObject = intersects[0].object;
+    while (tappedObject.parent && !interactableObjects.includes(tappedObject)) {
+        tappedObject = tappedObject.parent;
+    }
+
+    // Check if the time difference qualifies as a double-tap
+    if (timeSinceLastTap < doubleTapDelay) {
+        console.log(`Double-tap registered on: ${tappedObject.name}`);
+        
+        // --- Enter Edit Mode ---
+        activeObject = tappedObject;
+        setObjectOpacity(activeObject, 0.7);
+        
+        // Update sliders to match the object's current state
+        document.getElementById('scale-slider').value = activeObject.scale.x;
+        document.getElementById('rotate-slider').value = activeObject.rotation.y;
+        
+        showActionMenu();
+    } else {
+        // --- It's a single tap, so start dragging ---
         isDragging = true;
-        selectedPiece = intersects[0].object;
-        while (selectedPiece.parent && !interactableObjects.includes(selectedPiece.parent)) {
-            selectedPiece = selectedPiece.parent;
-        }
+        selectedPiece = tappedObject;
     }
 }
 
