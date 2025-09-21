@@ -15,7 +15,7 @@
 ---
 
 ## 🚀 Try It Out
-👉 [**Launch the App Here**](https://631f038bc03c.ngrok-free.app)  
+👉 [**Launch the App Here**](https://cat-a-log-orpin.vercel.app/)
 
 <sub><span style="color:orange">⚠️ Disclaimer:</span> Works only on **Android devices** with AR capabilities. link doesn't currently work</sub>  
 
