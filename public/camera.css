@@ -190,7 +190,7 @@ html, body {
 
 #ARButton {
     position: absolute !important;
-    bottom: 20px !important;
+    bottom: 300px !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
     z-index: 2; /* Ensure it's on top of all other UI */
