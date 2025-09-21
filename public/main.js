@@ -69,8 +69,14 @@ function init() {
     arContainer.appendChild(renderer.domElement);
 
     // --- WebXR "Enter AR" Button --- //
-    document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
-
+    document.body.appendChild(
+        ARButton.createButton(renderer, {
+            requiredFeatures: ['hit-test'],
+            // Add these two lines to enable the DOM Overlay
+            optionalFeatures: ['dom-overlay'],
+            domOverlay: { root: document.getElementById('overlay') }
+        })
+    );
     // --- LOAD THE FURNITURE BUNDLE --- //
     loadFurniturePalette();
 

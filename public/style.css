@@ -12,7 +12,19 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: -1; /* Place it behind the UI */
+    z-index: -1; /* Place it behind everything */
+}
+
+/* --- NEW OVERLAY STYLES --- */
+#overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2; /* Ensure it's on top of the canvas */
+    /* By default, let touches pass through the overlay container */
+    pointer-events: none;
 }
 
 /* Style the menu to be a neat bar at the bottom */
@@ -22,11 +34,13 @@ body {
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 15px; /* Spacing between buttons */
+    gap: 15px;
     background-color: rgba(0, 0, 0, 0.25);
     padding: 10px;
     border-radius: 30px;
-    backdrop-filter: blur(10px); /* Frosted glass effect */
+    backdrop-filter: blur(10px);
+    /* IMPORTANT: Make the menu and its contents clickable again */
+    pointer-events: auto;
 }
 
 /* Style for the furniture buttons */
@@ -43,12 +57,4 @@ body {
 
 #furniture-menu button:hover {
     background-color: rgba(255, 255, 255, 0.4);
-}
-
-/* Style for the default "Enter AR" button */
-#ARButton {
-    position: absolute;
-    bottom: 30px;
-    right: 30px;
-    z-index: 100;
 }
