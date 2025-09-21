@@ -15,7 +15,7 @@
 ---
 
 ## 🚀 Try It Out
-👉 [**Launch the App Here**](https://cc58229c879e.ngrok-free.app)  
+👉 [**Launch the App Here**](https://6372d9d97c5c.ngrok-free.app)  
 
 <sub><span style="color:orange">⚠️ Disclaimer:</span> Works only on **Android devices** with AR capabilities.</sub>  
 
