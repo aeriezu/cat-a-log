@@ -25,6 +25,11 @@
 - Shruti  
 - Katie  
 - Elese  
-- Brian  
+- Brian
+
+# App Screenshots
+![alt text]([https://github.com/leun-se/KennyJam/blob/main/screenshot_20250720_195917.png](https://github.com/aeriezu/moodboard-ar/blob/848cda5f5b31bec16fb22e1609b25383911b3408/screenshots/Screenshot%202025-09-21%20095048.png))
+![alt text](https://github.com/aeriezu/moodboard-ar/blob/848cda5f5b31bec16fb22e1609b25383911b3408/screenshots/Screenshot%202025-09-21%20095035.png)
+
 
 ---
