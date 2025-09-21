@@ -6,8 +6,6 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // ------------------- DATA CONFIGURATION ------------------------- //
 // ---------------------------------------------------------------- //
 
-// This is the data configuration based on the names from your .glb file.
-// Feel free to change the `displayName` and `scale` for each item.
 const FURNITURE_DATA = {
     'Object_4':   { displayName: 'Chair', scale: 1.0 },
     'Object_6':   { displayName: 'Stool', scale: 1.0 },
@@ -19,7 +17,6 @@ const FURNITURE_DATA = {
     'Object_60':  { displayName: 'Floor Lamp', scale: 1.1 },
     'Object_62':  { displayName: 'Sofa', scale: 1.2 },
     'Object_68':  { displayName: 'Dining Table', scale: 1.0 }
-    // Add more entries here for any other furniture you want to include.
 };
 
 
@@ -32,14 +29,15 @@ let hitTestSource = null;
 let hitTestSourceRequested = false;
 
 // --- OBJECT & INTERACTION STATE --- //
-const interactableObjects = []; // Stores placed furniture
+const interactableObjects = [];
 const loader = new GLTFLoader();
-const furniturePalette = {}; // This will store the actual THREE.Object3D models
+const furniturePalette = {};
 let currentObjectToPlace = null;
 let selectedPiece = null;
 let isDragging = false;
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
+let ignoreNextTap = false; // ** 1. ADD THIS NEW FLAG **
 
 
 init();
@@ -54,38 +52,32 @@ function init() {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-    // --- Lighting --- //
     scene.add(new THREE.HemisphereLight(0x808080, 0x606060, 3));
     const light = new THREE.DirectionalLight(0xffffff, 3);
     light.position.set(0, 6, 0);
     light.castShadow = true;
     scene.add(light);
     
-    // --- Renderer --- //
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.xr.enabled = true;
     arContainer.appendChild(renderer.domElement);
 
-    // --- WebXR "Enter AR" Button --- //
     document.body.appendChild(
         ARButton.createButton(renderer, {
             requiredFeatures: ['hit-test'],
-            // Add these two lines to enable the DOM Overlay
             optionalFeatures: ['dom-overlay'],
             domOverlay: { root: document.getElementById('overlay') }
         })
     );
-    // --- LOAD THE FURNITURE BUNDLE --- //
+
     loadFurniturePalette();
 
-    // --- XR Controller (Handles Taps) --- //
     controller = renderer.xr.getController(0);
     controller.addEventListener('select', onSelect);
     scene.add(controller);
 
-    // --- Placement Reticle --- //
     reticle = new THREE.Mesh(
         new THREE.RingGeometry(0.08, 0.1, 32).rotateX(-Math.PI / 2),
         new THREE.MeshBasicMaterial()
@@ -94,7 +86,6 @@ function init() {
     reticle.visible = false;
     scene.add(reticle);
 
-    // --- Event Listeners --- //
     window.addEventListener('resize', onWindowResize);
     renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: false });
     renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
@@ -110,24 +101,24 @@ function loadFurniturePalette() {
     const menuContainer = document.getElementById('furniture-menu');
     
     loader.load('low_poly_furnitures_full_bundle.glb', (gltf) => {
-        // Search the loaded scene for objects defined in FURNITURE_DATA
         gltf.scene.traverse((child) => {
             if (FURNITURE_DATA[child.name]) {
                 furniturePalette[child.name] = child;
             }
         });
 
-        // Now, create buttons based on our FURNITURE_DATA, not the file structure
         for (const modelName in FURNITURE_DATA) {
-            if (furniturePalette[modelName]) { // Ensure the model was actually found
+            if (furniturePalette[modelName]) {
                 const data = FURNITURE_DATA[modelName];
                 const button = document.createElement('button');
-                button.textContent = data.displayName; // Use the pretty name for the button
+                button.textContent = data.displayName;
                 button.onclick = () => {
                     currentObjectToPlace = {
                         model: furniturePalette[modelName],
                         scale: data.scale
                     };
+                    // ** 2. SET THE FLAG WHEN A BUTTON IS CLICKED **
+                    ignoreNextTap = true;
                     console.log(`Selected "${data.displayName}" for placement.`);
                 };
                 menuContainer.appendChild(button);
@@ -143,9 +134,16 @@ function loadFurniturePalette() {
 // ---------------------------------------------------------------- //
 
 function onSelect() {
+    // ** 3. CHECK AND RESET THE FLAG HERE **
+    // This prevents placing an object on the same tap that selected it.
+    if (ignoreNextTap) {
+        ignoreNextTap = false;
+        return;
+    }
+
     if (reticle.visible && currentObjectToPlace) {
         const model = currentObjectToPlace.model.clone();
-        model.scale.setScalar(currentObjectToPlace.scale || 1.0); // Apply the scale from our data
+        model.scale.setScalar(currentObjectToPlace.scale || 1.0);
         model.position.setFromMatrixPosition(reticle.matrix);
         model.visible = true;
         scene.add(model);
@@ -165,7 +163,7 @@ function onSelect() {
         model.userData.isColliding = false;
 
         interactableObjects.push(model);
-        currentObjectToPlace = null;
+        currentObjectToPlace = null; 
     }
 }
 
@@ -179,6 +177,11 @@ function onTouchStart(event) {
 
     const intersects = raycaster.intersectObjects(interactableObjects, true);
     if (intersects.length > 0) {
+        // Prevent starting a drag if a button was just clicked
+        if (ignoreNextTap) {
+            ignoreNextTap = false;
+            return;
+        }
         isDragging = true;
         selectedPiece = intersects[0].object;
         while (selectedPiece.parent && !interactableObjects.includes(selectedPiece.parent)) {
