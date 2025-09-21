@@ -1,289 +1,347 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { ARButton } from 'three/addons/webxr/ARButton.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-// --- SCENE, CAMERA, RENDERER --- //
-const scene = new THREE.Scene();
+// --- DATA CONFIGURATION --- //
+const FURNITURE_DATA = {
+    'Object_22':  { displayName: 'Black Loveseat', scale: 0.05 },
+    'Object_24':  { displayName: 'Black Single Sofa', scale: 0.05 },
+    'Object_26':  { displayName: 'Beige Single Chair', scale: 0.05 },
+    'Object_28':  { displayName: 'Blue Couch', scale: 0.05 },
+    'Object_30':  { displayName: 'Gray Single Sofa', scale: 0.05 },
+    'Object_32':  { displayName: 'Gray Couch', scale: 0.05 },
+    'Object_34':  { displayName: 'White Leather Couch', scale: 0.05 },
+    'Object_36':  { displayName: 'Beige Single Couch', scale: 0.05 },
+    'Object_38':  { displayName: 'Beige Sofa', scale: 0.05 },
+    'Object_40':  { displayName: 'Blue Twin Bed', scale: 0.05 },
+    'Object_42':  { displayName: 'Black Twin Bed', scale: 0.05 },
+    'Object_44':  { displayName: 'Red Queen Bed', scale: 0.05 },
+    'Object_46':  { displayName: 'Wooden Cabinet', scale: 0.05 },
+    'Object_48':  { displayName: 'Gray Queen Bed', scale: 0.05 },
+    'Object_50':  { displayName: 'TV Stand', scale: 0.05 },
+    'Object_8':   { displayName: 'Toilet Closed Lid', scale: 0.05 },
+    'Object_10':  { displayName: 'Blue Queen Bed', scale: 0.05 },
+    'Object_12':  { displayName: 'Flower Dresser', scale: 0.05 },
+    'Object_14':  { displayName: 'White TV Stand', scale: 0.05 },
+    'Object_16':  { displayName: 'Pink Couch', scale: 0.05 },
+    'Object_18':  { displayName: 'Pink Loveseat', scale: 0.05 },
+    'Object_20':  { displayName: 'Black Couch', scale: 0.05 },
+    'Object_52':  { displayName: 'Dark Brown TV Stand', scale: 0.05 },
+    'Object_54':  { displayName: 'Wooden Night Stand', scale: 0.05 },
+    'Object_56':  { displayName: 'Gray Closet', scale: 0.05 },
+    'Object_58':  { displayName: 'Fireplace', scale: 0.05 },
+    'Object_60':  { displayName: 'Three-Leg Lamp', scale: 0.05 },
+    'Object_62':  { displayName: 'Square Lamp', scale: 0.05 },
+    'Object_64':  { displayName: 'Black Sink', scale: 0.05 },
+    'Object_66':  { displayName: 'White Counter Sink', scale: 0.05 },
+    'Object_6':   { displayName: 'Toilet Open Lid', scale: 0.05 },
+    'Object_4':   { displayName: 'White Fireplace', scale: 0.05 },
+    'Object_68':  { displayName: 'Dark Counter Sink', scale: 0.05 }
+};
 
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-camera.position.z = 5;
+// --- CORE THREE.JS & XR COMPONENTS --- //
+let camera, scene, renderer;
+let controller;
+let reticle;
+let hitTestSource = null;
+let hitTestSourceRequested = false;
 
-const renderer = new THREE.WebGLRenderer({antialias: true});
-renderer.setSize( window.innerWidth, window.innerHeight );
-renderer.shadowMap.enabled = true;
-renderer.setAnimationLoop(animate);
-document.body.appendChild( renderer.domElement );
-
-// --- OBJECT SELECT --- //
+// --- OBJECT & INTERACTION STATE --- //
 const interactableObjects = [];
-let selectedPiece = null;
-let touchStartTime = 0;
-const holdThreshold = 800;
-let isSelected = false;
-let isDragging = false;
-
-// --- OBJECT DONE BUTTON --- //
-const doneButton = document.createElement('button');
-doneButton.innerText = '✔️';
-doneButton.style.position = 'absolute';
-doneButton.style.top = '10px';
-doneButton.style.right = '10px';
-doneButton.style.display = 'none';
-document.body.appendChild(doneButton);
-
-doneButton.addEventListener('click', () => {
-    selectedPiece = null;
-    isSelected = false;
-    doneButton.style.pointerEvents = 'auto';
-    isDragging = false; // <-- ADD THIS LINE
-    doneButton.style.display = 'none';
-    controls.enabled = true;
-});
-
-// --- GROUND --- //
-const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(30,30),
-    new THREE.MeshStandardMaterial({color: 0xcccccc})
-);
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
-
-// --- CONTROLS --- //
-const controls = new OrbitControls( camera, renderer.domElement );
-
-// --- RAYCASTING AND POINTER -- //
-const raycaster = new THREE.Raycaster();
-const pointer = new THREE.Vector2();
-
-// --- GLTF LOADER --- //
 const loader = new GLTFLoader();
+const furniturePalette = {};
+let currentObjectToPlace = null;
+let activeObject = null;
+const raycaster = new THREE.Raycaster();
+let ignoreNextTap = false;
+let lastTapTime = 0;
+const doubleTapDelay = 300;
 
-// This is our main array, now consistently named
-const furniturePieces = [];
+init();
+animate();
 
-loader.load('low_poly_furnitures_full_bundle.glb', function (glb) {
-    // This robust while-loop transfers children safely from the loaded scene to your main scene
-    while (glb.scene.children.length > 0) {
-        const item = glb.scene.children[0];
+// --- CORE SETUP --- //
+function init() {
+    const arContainer = document.getElementById('ar-container');
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-        // The scene.add(item) call automatically removes it from glb.scene.children
-        scene.add(item);
-
-        if (item.isGroup || item.isMesh) {
-            furniturePieces.push(item);
-
-            if (!item.name) item.name = `item-${THREE.MathUtils.generateUUID()}`;
-
-            // Configure the helper for this top-level item
-            const box = new THREE.Box3().setFromObject(item);
-            const helper = new THREE.Box3Helper(box, 0xff0000); // Red color
-            helper.material.transparent = true;
-            helper.material.opacity = 0;
-            scene.add(helper);
-            
-            item.userData.boxHelper = helper;
-            item.userData.isColliding = false;
-
-            // Traverse this item to set properties on all its children
-            item.traverse(child => {
-                if (child.isMesh) {
-                    child.castShadow = true;
-                    child.receiveShadow = true;
-                }
-            });
-        }
-    }
-});
-
-
-// --- EVENT LISTENERS --- //
-window.addEventListener('pointermove', onPointerMove);
-// --- MOUSE UP --- //
-window.addEventListener('pointerup', () => {
-    // When we let go, reset the collision state of the piece we were holding
-    if (selectedPiece) {
-        selectedPiece.userData.isColliding = false;
-    }
-    isDragging = false;
-});
-
-renderer.domElement.addEventListener('touchstart', (event) => {
-    //... (pointer calculation code) ...
-
-    raycaster.setFromCamera(pointer, camera);
-    // Use the furniturePieces array for raycasting
-    const intersects = raycaster.intersectObjects(furniturePieces, true);
-
-    if (intersects.length > 0) {
-        touchStartTime = Date.now();
-        // Find the top-level parent from our list
-        let target = intersects[0].object;
-        while (target.parent && !furniturePieces.includes(target)) {
-            target = target.parent;
-        }
-
-        setTimeout(() => {
-            if (Date.now() - touchStartTime >= holdThreshold && !isSelected) {
-                selectedPiece = target;
-                isSelected = true;
-                doneButton.style.display = 'block';
-                controls.enabled = false;
-                console.log('Selected:', selectedPiece.name);
-            }
-        }, holdThreshold);
-    }
-});
-
-//--COLLISION LOGIC--
-/**
- * Checks for collisions and updates the .isColliding state on all objects.
- * @param {THREE.Object3D} targetObject - The object being moved.
- * @param {THREE.Vector3} potentialPosition - The position to test.
- * @returns {boolean} - True if a collision was detected.
- */
-function updateCollisions(targetObject, potentialPosition) {
-    let collisionDetected = false;
-    targetObject.userData.isColliding = false;
-
-    const testBox = new THREE.Box3();
-    const originalBox = new THREE.Box3().setFromObject(targetObject);
-    const displacement = new THREE.Vector3().subVectors(potentialPosition, targetObject.position);
-    testBox.copy(originalBox).translate(displacement);
-
-    // First pass: Reset collision state
-    for (const otherObject of furniturePieces) {
-        if (otherObject !== targetObject) {
-            otherObject.userData.isColliding = false;
-        }
-    }
-
-    // Second pass: Check for new collisions
-    for (const otherObject of furniturePieces) {
-        if (otherObject === targetObject) continue;
-
-        const otherBox = new THREE.Box3().setFromObject(otherObject);
-        if (testBox.intersectsBox(otherBox)) {
-            otherObject.userData.isColliding = true;
-            targetObject.userData.isColliding = true;
-            collisionDetected = true;
-        }
-    }
+    scene.add(new THREE.HemisphereLight(0x808080, 0x606060, 3));
+    const light = new THREE.DirectionalLight(0xffffff, 3);
+    light.position.set(0, 6, 0);
+    light.castShadow = true;
+    scene.add(light);
     
-    return collisionDetected;
-}
-// --- TOUCHMOVE --- //
-renderer.domElement.addEventListener('touchmove', (event) => {
-    // Initiate the drag on the first touch move after selection
-    if (selectedPiece && !isDragging) {
-        isDragging = true;
-    }
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+    arContainer.appendChild(renderer.domElement);
 
-    if (!selectedPiece || !isDragging) return;
-    event.preventDefault();
+    document.body.appendChild(
+        ARButton.createButton(renderer, {
+            requiredFeatures: ['hit-test'],
+            optionalFeatures: ['dom-overlay'],
+            domOverlay: { root: document.getElementById('overlay') }
+        })
+    );
 
-    const touch = event.touches[0];
-    pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(pointer, camera);
+    loadFurniturePalette();
 
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    const intersectionPoint = new THREE.Vector3();
+    controller = renderer.xr.getController(0);
+    controller.addEventListener('select', onSelect);
+    scene.add(controller);
 
-    if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-        const potentialPosition = new THREE.Vector3(
-            intersectionPoint.x,
-            selectedPiece.position.y,
-            intersectionPoint.z
-        );
-        
-        // FIX: was checkCollisions, should be updateCollisions
-        const collision = updateCollisions(selectedPiece, potentialPosition);
+    reticle = new THREE.Mesh(
+        new THREE.RingGeometry(0.08, 0.1, 32).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial()
+    );
+    reticle.matrixAutoUpdate = false;
+    reticle.visible = false;
+    scene.add(reticle);
 
-        if (!collision) {
-            selectedPiece.position.copy(potentialPosition);
-        }
-    }
-});
+    window.addEventListener('resize', onWindowResize);
 
-// --- TOUCH END --- //
-renderer.domElement.addEventListener('touchend', () => {
-    touchStartTime = 0;
-    if (selectedPiece) {
-        selectedPiece.userData.isColliding = false;
-    }
-    isDragging = false;
-});
-
-function onPointerDown(event) {
-    if (!selectedPiece) return;
-
-    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
-
-    raycaster.setFromCamera(pointer, camera);
-    const intersects = raycaster.intersectObjects(interactableObjects, true);
-
-    if (intersects.length > 0) {
-        selectedPiece = intersects[0].object.parent; // pick parent mesh
-        console.log(`Selected: ${selectedPiece.name}`);
-
-        document.getElementById('info').innerText = `Selected: ${selectedPiece.name}`;
-    } else {
-        selectedPiece = null;
-    }
-}
-
-
-function onPointerMove(event) {
-    // Only run if a piece is selected and we have started dragging
-    if (!selectedPiece || !isDragging) return;
-
-    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(pointer, camera);
-
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    const intersectionPoint = new THREE.Vector3();
-
-    if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
-        const potentialPosition = new THREE.Vector3(
-            intersectionPoint.x,
-            selectedPiece.position.y,
-            intersectionPoint.z
-        );
-
-        // Call the new function. It returns true if there is a collision.
-        const collision = updateCollisions(selectedPiece, potentialPosition);
-        
-        if (!collision) {
-            selectedPiece.position.copy(potentialPosition);
-        }
-    }
-}
-
-const clock = new THREE.Clock(); // Add this at the top of your script
-
-function animate() {
-    const deltaTime = clock.getDelta();
-    const fadeSpeed = deltaTime * 5;
-
-    // IMPORTANT: Loop over 'furniturePieces', not the empty 'interactableObjects'
-    furniturePieces.forEach(object => {
-        const helper = object.userData.boxHelper;
-        if (helper) {
-            helper.box.setFromObject(object);
-
-            const targetOpacity = object.userData.isColliding ? 1.0 : 0.0;
-            
-            if (helper.material.opacity < targetOpacity) {
-                helper.material.opacity = Math.min(targetOpacity, helper.material.opacity + fadeSpeed);
-            } else if (helper.material.opacity > targetOpacity) {
-                helper.material.opacity = Math.max(targetOpacity, helper.material.opacity - fadeSpeed);
+    // --- Action Button Listeners ---
+    document.getElementById('delete-btn').addEventListener('click', () => {
+        if (activeObject) {
+            scene.remove(activeObject);
+            scene.remove(activeObject.userData.boxHelper);
+            const index = interactableObjects.indexOf(activeObject);
+            if (index > -1) {
+                interactableObjects.splice(index, 1);
             }
+            activeObject = null;
+            hideActionMenu();
         }
     });
 
-    controls.update();
+    document.getElementById('confirm-btn').addEventListener('click', () => {
+        if (activeObject) {
+            setObjectOpacity(activeObject, 1.0);
+            activeObject = null;
+            hideActionMenu();
+        }
+    });
+
+    const scaleSlider = document.getElementById('scale-slider');
+    scaleSlider.addEventListener('input', (event) => {
+        if (activeObject) {
+            const box = new THREE.Box3();
+            box.setFromObject(activeObject);
+            const oldBottomY = box.min.y;
+            const newScale = parseFloat(event.target.value);
+            activeObject.scale.setScalar(newScale);
+            box.setFromObject(activeObject);
+            const newBottomY = box.min.y;
+            activeObject.position.y += (oldBottomY - newBottomY);
+        }
+    });
+
+    const rotateSlider = document.getElementById('rotate-slider');
+    rotateSlider.addEventListener('input', (event) => {
+        if (activeObject) {
+            const newRotation = parseFloat(event.target.value);
+            activeObject.rotation.y = newRotation;
+        }
+    });
+}
+
+// --- UI & PALETTE LOADING --- //
+function loadFurniturePalette() {
+    const menuContainer = document.getElementById('furniture-menu');
+    const scaleSlider = document.getElementById('scale-slider');
+    
+    loader.load('low_poly_furnitures_full_bundle.glb', (gltf) => {
+        gltf.scene.traverse((child) => {
+            if (FURNITURE_DATA[child.name]) {
+                furniturePalette[child.name] = child;
+            }
+        });
+
+        for (const modelName in FURNITURE_DATA) {
+            if (furniturePalette[modelName]) {
+                const data = FURNITURE_DATA[modelName];
+                const button = document.createElement('button');
+                button.textContent = data.displayName;
+                button.onclick = () => {
+                    if (activeObject) return;
+                    currentObjectToPlace = {
+                        model: furniturePalette[modelName],
+                        scale: data.scale
+                    };
+                    scaleSlider.value = data.scale;
+                    ignoreNextTap = true;
+                };
+                menuContainer.appendChild(button);
+            }
+        }
+    });
+}
+
+// UI Management Functions
+function showActionMenu() {
+    document.getElementById('action-menu').style.display = 'flex';
+    document.getElementById('furniture-menu').style.display = 'none';
+}
+
+function hideActionMenu() {
+    document.getElementById('action-menu').style.display = 'none';
+    document.getElementById('furniture-menu').style.display = 'flex';
+}
+
+// Helper function to change object opacity
+function setObjectOpacity(object, opacity) {
+    object.traverse((child) => {
+        if (child.isMesh) {
+            child.material.transparent = true;
+            child.material.opacity = opacity;
+        }
+    });
+}
+
+// --- PLACEMENT & INTERACTION --- //
+function onSelect(event) {
+    if (ignoreNextTap) {
+        ignoreNextTap = false;
+        return;
+    }
+
+    if (reticle.visible && currentObjectToPlace) {
+        const model = currentObjectToPlace.model.clone();
+        model.scale.setScalar(currentObjectToPlace.scale || 1.0);
+        
+        const box = new THREE.Box3().setFromObject(model);
+        const verticalOffset = -box.min.y;
+        model.position.setFromMatrixPosition(reticle.matrix);
+        model.position.y += verticalOffset;
+
+        model.visible = true;
+        scene.add(model);
+        interactableObjects.push(model);
+
+        activeObject = model;
+        setObjectOpacity(activeObject, 0.7);
+        showActionMenu();
+
+        document.getElementById('rotate-slider').value = 0;
+        
+        const boxHelper = new THREE.Box3Helper(new THREE.Box3().setFromObject(model), 0xff0000);
+        boxHelper.material.transparent = true;
+        boxHelper.material.opacity = 0;
+        scene.add(boxHelper);
+        model.userData.boxHelper = boxHelper;
+        model.userData.isColliding = false;
+
+        // ✨ --- NEW: Z-Fighting Fix --- ✨
+        // We traverse the newly placed model and apply a polygon offset
+        // to all its materials. This prevents flickering lines.
+        model.traverse((child) => {
+            if (child.isMesh) {
+                if (child.material) {
+                    child.material.polygonOffset = true;
+                    child.material.polygonOffsetFactor = -1.0;
+                    child.material.polygonOffsetUnits = -1.0;
+                }
+            }
+        });
+        // ✨ --- End of Fix --- ✨
+
+        currentObjectToPlace = null; 
+        return;
+    }
+
+    // --- Double-tap Logic ---
+    const currentTime = new Date().getTime();
+    const timeSinceLastTap = currentTime - lastTapTime;
+    lastTapTime = currentTime;
+
+    if (timeSinceLastTap < doubleTapDelay) {
+        if (activeObject) return;
+
+        raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+        const intersects = raycaster.intersectObjects(interactableObjects, true);
+
+        if (intersects.length > 0) {
+            let tappedObject = intersects[0].object;
+            while (tappedObject.parent && !interactableObjects.includes(tappedObject)) {
+                tappedObject = tappedObject.parent;
+            }
+
+            activeObject = tappedObject;
+            setObjectOpacity(activeObject, 0.7);
+            
+            document.getElementById('scale-slider').value = activeObject.scale.x;
+            document.getElementById('rotate-slider').value = activeObject.rotation.y;
+            
+            showActionMenu();
+        }
+    }
+}
+
+// ✨ These functions are intentionally left empty in this interaction model.
+function onTouchStart(event) {}
+function onTouchMove(event) {}
+function onTouchEnd() {}
+function updateCollisions(targetObject, potentialPosition) {}
+
+// --- RENDER LOOP & UTILS --- //
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function animate() {
+    renderer.setAnimationLoop(render);
+}
+
+function render(timestamp, frame) {
+    if (frame) {
+        const referenceSpace = renderer.xr.getReferenceSpace();
+        const session = renderer.xr.getSession();
+
+        if (!hitTestSourceRequested) {
+            session.requestReferenceSpace('viewer').then(refSpace => {
+                session.requestHitTestSource({ space: refSpace }).then(source => {
+                    hitTestSource = source;
+                });
+            });
+            session.addEventListener('end', () => {
+                hitTestSourceRequested = false;
+                hitTestSource = null;
+            });
+            hitTestSourceRequested = true;
+        }
+
+        if (hitTestSource) {
+            const hitTestResults = frame.getHitTestResults(hitTestSource);
+            const hit = hitTestResults.length > 0 ? hitTestResults[0] : null;
+
+            if (hit) {
+                reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
+                reticle.visible = !activeObject;
+
+                if (activeObject) {
+                    const box = new THREE.Box3().setFromObject(activeObject);
+                    const offset = activeObject.position.y - box.min.y;
+                    activeObject.position.setFromMatrixPosition(reticle.matrix);
+                    activeObject.position.y += offset;
+                }
+            } else {
+                reticle.visible = false;
+            }
+        }
+    }
+
+    interactableObjects.forEach(object => {
+        const helper = object.userData.boxHelper;
+        if (helper) {
+            helper.box.setFromObject(object);
+            const targetOpacity = 0.0;
+            helper.material.opacity += (targetOpacity - helper.material.opacity) * 0.1;
+        }
+    });
+
     renderer.render(scene, camera);
 }
