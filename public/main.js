@@ -51,8 +51,8 @@ const interactableObjects = [];
 const loader = new GLTFLoader();
 const furniturePalette = {};
 let currentObjectToPlace = null;
-let selectedPiece = null; // Used for dragging
-let activeObject = null; // ✨ NEW: The object currently in "editing mode"
+let selectedPiece = null;
+let activeObject = null;
 let isDragging = false;
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -106,10 +106,9 @@ function init() {
     renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
     renderer.domElement.addEventListener('touchend', onTouchEnd);
 
-    // ✨ NEW: Add event listeners for the action buttons
     document.getElementById('rotate-btn').addEventListener('click', () => {
         if (activeObject) {
-            activeObject.rotation.y += Math.PI / 4; // Rotate by 45 degrees
+            activeObject.rotation.y += Math.PI / 4;
         }
     });
 
@@ -117,7 +116,6 @@ function init() {
         if (activeObject) {
             scene.remove(activeObject);
             scene.remove(activeObject.userData.boxHelper);
-            // Remove from interactableObjects array
             const index = interactableObjects.indexOf(activeObject);
             if (index > -1) {
                 interactableObjects.splice(index, 1);
@@ -129,7 +127,7 @@ function init() {
 
     document.getElementById('confirm-btn').addEventListener('click', () => {
         if (activeObject) {
-            setObjectOpacity(activeObject, 1.0); // Make it fully opaque
+            setObjectOpacity(activeObject, 1.0);
             activeObject = null;
             hideActionMenu();
         }
@@ -153,7 +151,7 @@ function loadFurniturePalette() {
                 const button = document.createElement('button');
                 button.textContent = data.displayName;
                 button.onclick = () => {
-                    if (activeObject) return; // Don't allow selecting a new item while one is active
+                    if (activeObject) return;
                     currentObjectToPlace = {
                         model: furniturePalette[modelName],
                         scale: data.scale
@@ -167,7 +165,7 @@ function loadFurniturePalette() {
     });
 }
 
-// ✨ NEW: UI Management Functions
+// UI Management Functions
 function showActionMenu() {
     document.getElementById('action-menu').style.display = 'flex';
     document.getElementById('furniture-menu').style.display = 'none';
@@ -178,11 +176,10 @@ function hideActionMenu() {
     document.getElementById('furniture-menu').style.display = 'flex';
 }
 
-// ✨ NEW: Helper function to change object opacity
+// Helper function to change object opacity
 function setObjectOpacity(object, opacity) {
     object.traverse((child) => {
         if (child.isMesh) {
-            // Ensure the material is transparent
             child.material.transparent = true;
             child.material.opacity = opacity;
         }
@@ -202,6 +199,10 @@ function onSelect() {
         
         const box = new THREE.Box3().setFromObject(model);
         const verticalOffset = -box.min.y;
+        
+        // ✨ NEW: Store the offset for use in the render loop
+        model.userData.verticalOffset = verticalOffset;
+        
         model.position.setFromMatrixPosition(reticle.matrix);
         model.position.y += verticalOffset;
 
@@ -209,12 +210,10 @@ function onSelect() {
         scene.add(model);
         interactableObjects.push(model);
 
-        // ✨ NEW: Enter "editing mode" for the new object
         activeObject = model;
-        setObjectOpacity(activeObject, 0.7); // Make it semi-transparent
-        showActionMenu(); // Show the new buttons
+        setObjectOpacity(activeObject, 0.7);
+        showActionMenu();
 
-        // Setup collision helper
         const boxHelper = new THREE.Box3Helper(new THREE.Box3().setFromObject(model), 0xff0000);
         boxHelper.material.transparent = true;
         boxHelper.material.opacity = 0;
@@ -227,26 +226,16 @@ function onSelect() {
 }
 
 function onTouchStart(event) {
+    // ✨ MODIFIED: Disable dragging while an object is in edit mode.
+    if (activeObject) return;
+
     if (event.touches.length !== 1 || !renderer.xr.isPresenting) return;
     const touch = event.touches[0];
 
-    // If an object is active, it's the only one we should be able to drag
-    if (activeObject) {
-        pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-        pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera(pointer, camera);
-        const intersects = raycaster.intersectObject(activeObject, true);
-        if (intersects.length > 0) {
-            isDragging = true;
-            selectedPiece = activeObject;
-        }
-        return; // Don't check other objects
-    }
-
-    // Original dragging logic for non-active objects (can be removed if not needed)
     pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
     pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
+
     const intersects = raycaster.intersectObjects(interactableObjects, true);
     if (intersects.length > 0) {
         if (ignoreNextTap) {
@@ -262,7 +251,8 @@ function onTouchStart(event) {
 }
 
 function onTouchMove(event) {
-    if (!isDragging || !selectedPiece) return;
+    // We only drag pieces that are not the active one
+    if (!isDragging || !selectedPiece || selectedPiece === activeObject) return;
     event.preventDefault();
 
     const touch = event.touches[0];
@@ -298,7 +288,6 @@ function updateCollisions(targetObject, potentialPosition) {
     const displacement = new THREE.Vector3().subVectors(potentialPosition, targetObject.position);
     testBox.translate(displacement);
 
-    // Filter out the target object itself from the collision check
     const otherObjects = interactableObjects.filter(obj => obj !== targetObject);
 
     for (const otherObject of otherObjects) {
@@ -343,18 +332,22 @@ function render(timestamp, frame) {
             hitTestSourceRequested = true;
         }
 
-        // Only show the reticle if we are in placement mode (no object is active)
-        if (hitTestSource && !activeObject) {
+        if (hitTestSource) {
             const hitTestResults = frame.getHitTestResults(hitTestSource);
             if (hitTestResults.length > 0) {
                 const hit = hitTestResults[0];
-                reticle.visible = true;
+                reticle.visible = !activeObject; // Hide reticle when an object is active
                 reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
             } else {
                 reticle.visible = false;
             }
-        } else if (reticle) {
-            reticle.visible = false;
+            
+            // ✨ NEW: Make the active object follow the reticle
+            if (activeObject && reticle.visible) {
+                const offset = activeObject.userData.verticalOffset || 0;
+                activeObject.position.setFromMatrixPosition(reticle.matrix);
+                activeObject.position.y += offset;
+            }
         }
     }
 
