@@ -32,9 +32,7 @@
 
 ![alt text](https://github.com/aeriezu/cat-a-log/blob/848cda5f5b31bec16fb22e1609b25383911b3408/screenshots/Screenshot%202025-09-21%20095035.png)
 
-![alt text](https://github.com/aeriezu/cat-a-log/blob/main/screenshots/Screenshot_20250921_112904_Chrome.png)
-
-![alt text](https://github.com/aeriezu/cat-a-log/blob/main/screenshots/Screenshot_20250921_113001_Chrome.png)
+![alt text](https://github.com/aeriezu/cat-a-log/blob/main/screenshots/Screenshot_20250921_114410_Chrome.png)
 
 
 ---
