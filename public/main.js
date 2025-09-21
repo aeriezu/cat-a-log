@@ -244,47 +244,41 @@ function onSelect() {
     }
 }
 
-// ✨ --- MODIFIED: This function has been refactored for clarity and debugging --- ✨
 function onTouchStart(event) {
-    // Ignore taps if an object is already active, or if it's not a single touch
     if (activeObject || event.touches.length !== 1 || !renderer.xr.isPresenting) return;
 
     const touch = event.touches[0];
-    pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = - (touch.clientY / window.innerHeight) * 2 + 1;
+
+    // ✨ --- MODIFIED: More robust tap position calculation --- ✨
+    // This accounts for any potential offsets or borders on the canvas
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointer.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+    // ✨ --- End of Modification --- ✨
+
     raycaster.setFromCamera(pointer, camera);
     const intersects = raycaster.intersectObjects(interactableObjects, true);
 
-    // If the user didn't tap on any object, do nothing.
     if (intersects.length === 0) return;
 
-    // --- Tap Timing Logic ---
     const currentTime = new Date().getTime();
     const timeSinceLastTap = currentTime - lastTapTime;
     lastTapTime = currentTime;
     console.log(`Tap detected on an object. Time since last: ${timeSinceLastTap}ms`);
 
-    // Find the top-level parent of the tapped object
     let tappedObject = intersects[0].object;
     while (tappedObject.parent && !interactableObjects.includes(tappedObject)) {
         tappedObject = tappedObject.parent;
     }
 
-    // Check if the time difference qualifies as a double-tap
     if (timeSinceLastTap < doubleTapDelay) {
         console.log(`Double-tap registered on: ${tappedObject.name}`);
-        
-        // --- Enter Edit Mode ---
         activeObject = tappedObject;
         setObjectOpacity(activeObject, 0.7);
-        
-        // Update sliders to match the object's current state
         document.getElementById('scale-slider').value = activeObject.scale.x;
         document.getElementById('rotate-slider').value = activeObject.rotation.y;
-        
         showActionMenu();
     } else {
-        // --- It's a single tap, so start dragging ---
         isDragging = true;
         selectedPiece = tappedObject;
     }
