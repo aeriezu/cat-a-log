@@ -84,7 +84,7 @@
             'Object_46':  { displayName: 'Wooden Cabinet' },
             'Object_48':  { displayName: 'Gray Queen Bed', rotation: [0, Math.PI / 2, 0] },
             'Object_50':  { displayName: 'TV Stand' },
-            'Object_8':   { displayName: 'Safe' },
+            'Object_8':   { displayName: 'Simple Toilet', rotation: [0, Math.PI / 2, 0] },
             'Object_10':  { displayName: 'Blue Queen Bed', rotation: [0, Math.PI / 2, 0] },
             'Object_12':  { displayName: 'Flower Dresser' },
             'Object_14':  { displayName: 'White TV Stand' },
@@ -175,7 +175,7 @@
                 const maxDim = Math.max(size.x, size.y, size.z);
                 
                 // ✨ UPDATED: Decreased fitOffset to zoom in slightly.
-                const fitOffset = 1.6;
+                const fitOffset = 1.8;
                 const fovRad = camera.fov * (Math.PI / 180);
                 let cameraZ = Math.abs(maxDim / (2 * Math.tan(fovRad / 2))) * fitOffset;
 
