@@ -6,11 +6,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // ------------------- DATA CONFIGURATION ------------------------- //
 // ---------------------------------------------------------------- //
 
-// ** 1. GLOBAL SCALE VARIABLE **
-// Adjust this single value to change the size of all placed objects.
-const GLOBAL_SCALE = 0.6;
+const GLOBAL_SCALE = 0.55;
 
-// The individual 'scale' properties have been removed from this object.
 const FURNITURE_DATA = {
     'Object_4':   { displayName: 'Chair' },
     'Object_6':   { displayName: 'Stool' },
@@ -118,8 +115,6 @@ function loadFurniturePalette() {
                 const button = document.createElement('button');
                 button.textContent = data.displayName;
                 button.onclick = () => {
-                    // ** 2. SIMPLIFIED SELECTION **
-                    // We only need to select the model itself now.
                     currentObjectToPlace = furniturePalette[modelName];
                     ignoreNextTap = true;
                     console.log(`Selected "${data.displayName}" for placement.`);
@@ -143,10 +138,24 @@ function onSelect() {
     }
 
     if (reticle.visible && currentObjectToPlace) {
-        // ** 3. UPDATED PLACEMENT LOGIC **
         const model = currentObjectToPlace.clone();
-        model.scale.setScalar(GLOBAL_SCALE); // Use the global scale variable
+        
+        // Apply the global scale first, as this affects the model's size
+        model.scale.setScalar(GLOBAL_SCALE);
+        
+        // --- ✨ NEW GROUNDING LOGIC ✨ ---
+        // 1. Create a bounding box to measure the model *after* it has been scaled.
+        const box = new THREE.Box3().setFromObject(model);
+        
+        // 2. Calculate the distance from the model's origin to its bottom edge.
+        // For a centered model, `box.min.y` will be negative, so this results in a positive offset.
+        const verticalOffset = -box.min.y;
+
+        // 3. Position the model using the reticle, then apply the vertical offset.
         model.position.setFromMatrixPosition(reticle.matrix);
+        model.position.y += verticalOffset;
+        // --- End of New Logic ---
+
         model.visible = true;
         scene.add(model);
 
