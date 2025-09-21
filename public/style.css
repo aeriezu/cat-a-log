@@ -26,11 +26,29 @@ html, body {
 }
 
 body {
+  margin: 0;
+  min-height: 100vh;
+  min-width: 100vw;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
-  width: 100vw;
-  min-height: 100vh;
+  overflow: hidden; /* This is crucial to prevent scrolling */
+}
+
+/* Use a new container to properly scale the whole page */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 95vw; /* Make the container a little less than the full width */
+  height: 95vh; /* Make it a little less than the full height */
+  background: #75c79fFF;
+  border: 4px solid linear-gradient(to bottom, rgba(224, 170, 62, 1) 25%,rgba(221, 224, 192, 1) 75%,rgba(184, 138, 68, 1) 100%);
+  border-radius: 0;
+  position: relative;
+  overflow: hidden;
 }
 
 * {
@@ -41,12 +59,15 @@ body {
 
 /* Welcome Board */
 .welcome-bo-d59084a8d467 {
-  position: relative;
-  width: 1194px;
-  height: 834px;
+  width: 100vw; /* Make it fill the full viewport width */
+  height: 100vh; /* Make it fill the full viewport height */
+  display: flex; /* Use Flexbox for children */
+  flex-direction: column; /* Stack children vertically */
+  justify-content: center; /* Center content vertically */
+  align-items: center; /* Center content horizontally */
   background: #75c79fFF;
   border: 4px solid linear-gradient(to bottom, rgba(224, 170, 62, 1) 25%,rgba(221, 224, 192, 1) 75%,rgba(184, 138, 68, 1) 100%);
-  border-radius: 0px 0px 0px 0px;
+  border-radius: 0;
   overflow: hidden;
   z-index: 0;
 }
@@ -56,7 +77,8 @@ body {
   position: absolute;
   top: 0px;
   left: 0px;
-  transform: translate(0px,0px);
+  max-width: 90%; /* Adjust size relative to the container */
+  height: auto; 
 }
 .katies-ar-d59238be6008 {
   position: absolute;
