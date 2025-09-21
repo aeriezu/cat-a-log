@@ -1,0 +1,36 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="./static/css/camera.css">
+</head>
+<body>
+    <div class="ar-screen">
+    
+    <!-- Vertical Category Selector -->
+    <div class="category-carousel">
+        <div class="category" data-category="chairs">🪑</div>
+        <div class="category" data-category="tables">🛋️</div>
+        <div class="category" data-category="couches">🛏️</div>
+        <div class="category" data-category="lamps">💡</div>
+    </div>
+    
+    <!-- Camera preview area -->
+        <div class="camera-view">
+            <video id="camera-feed" autoplay playsinline></video>
+          </div>
+
+    <!-- Close button -->
+    <button class="close-btn">✕</button>
+
+    <!-- Bottom Carousel -->
+    <div class="item-carousel">
+        <div class="carousel-track" id="item-track">
+        
+        </div>
+    </div>
+    </div>
+    <script src="./static/js/camera.js"></script>
+</body>
+</html>
